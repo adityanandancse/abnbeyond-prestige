@@ -1,0 +1,61 @@
+{%- comment -%}
+  Collection card hover video — included once from layout/theme.liquid.
+  A single delegated listener plays the muted card video on hover (desktop,
+  pointer:fine) and pauses + resets it on leave. The <video> uses preload="none",
+  so nothing downloads until the first hover. Touch devices get no hover (the
+  video is display:none under (hover:none)/(pointer:coarse)); they keep whatever
+  static image the card shows.
+{%- endcomment -%}
+
+<style>
+  .ProductItem__HoverVideo {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    -o-object-fit: cover; object-fit: cover;
+    -o-object-position: center; object-position: center;
+    opacity: 0;
+    -webkit-transition: opacity 0.35s ease-in-out;
+    transition: opacity 0.35s ease-in-out;
+    pointer-events: none;
+  }
+
+  @media (-moz-touch-enabled: 0), (hover: hover) {
+    .ProductItem__ImageWrapper--withHoverVideo:hover .ProductItem__Image { opacity: 0 !important; }
+    .ProductItem__ImageWrapper--withHoverVideo:hover .ProductItem__HoverVideo { opacity: 1; }
+  }
+
+  @media (-moz-touch-enabled: 1), (hover: none), (pointer: coarse) {
+    .ProductItem__HoverVideo { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ProductItem__HoverVideo { -webkit-transition: none; transition: none; }
+  }
+</style>
+
+<script>
+(function () {
+  if (!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+  function cardVideo(target) {
+    if (!target || !target.closest) return null;
+    var wrap = target.closest('.ProductItem__ImageWrapper--withHoverVideo');
+    return wrap ? wrap.querySelector('[data-card-video]') : null;
+  }
+
+  // mouseenter/mouseleave don't bubble — listen in the capture phase to delegate.
+  document.addEventListener('mouseenter', function (e) {
+    var video = cardVideo(e.target);
+    if (!video) return;
+    var p = video.play();
+    if (p && p.catch) p.catch(function () {});
+  }, true);
+
+  document.addEventListener('mouseleave', function (e) {
+    var video = cardVideo(e.target);
+    if (!video) return;
+    video.pause();
+    try { video.currentTime = 0; } catch (err) {}
+  }, true);
+})();
+</script>

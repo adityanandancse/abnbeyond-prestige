@@ -1,0 +1,167 @@
+{%- comment -%}
+  Floating WhatsApp concierge button. Rendered once, just before </body>.
+  Single link source: snippets/whatsapp-link.liquid.
+{%- endcomment -%}
+
+{%- if settings.whatsapp_enable -%}
+
+{%- assign wa_hidden = false -%}
+{%- assign wa_hide_list = settings.whatsapp_hide_on_templates | split: ',' -%}
+{%- for wa_tpl in wa_hide_list -%}
+  {%- assign wa_tpl_clean = wa_tpl | strip | downcase -%}
+  {%- if wa_tpl_clean == template.name -%}
+    {%- assign wa_hidden = true -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- unless wa_hidden -%}
+  {%- capture wa_href -%}{% render 'whatsapp-link' %}{%- endcapture -%}
+  {%- assign wa_label = settings.whatsapp_label | default: 'Chat with us' -%}
+  {%- assign wa_product_title = '' -%}
+  {%- if template.name == 'product' and product -%}
+    {%- assign wa_product_title = product.title -%}
+  {%- endif -%}
+
+  <style>
+    .WhatsAppConcierge {
+      --wa-size: 56px;
+      --wa-gap: 20px;
+      --wa-offset-bottom: 0px;
+      position: fixed;
+      bottom: calc(var(--wa-gap) + var(--wa-offset-bottom) + env(safe-area-inset-bottom, 0px));
+      z-index: 50;
+      display: inline-flex;
+      align-items: center;
+      height: var(--wa-size);
+      max-width: var(--wa-size);
+      padding: 0;
+      border-radius: 100px;
+      background: {{ settings.button_background }};
+      color: {{ settings.button_text_color }};
+      font-family: 'Inter', sans-serif;
+      font-size: {{ settings.base_text_font_size | default: 14 }}px;
+      line-height: 1;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+      transition: max-width 0.35s cubic-bezier(0.645, 0.045, 0.355, 1), box-shadow 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .WhatsAppConcierge--right { right: var(--wa-gap); }
+    .WhatsAppConcierge--left  { left: var(--wa-gap); }
+
+    .WhatsAppConcierge__Icon {
+      flex: 0 0 var(--wa-size);
+      width: var(--wa-size);
+      height: var(--wa-size);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .WhatsAppConcierge__Icon svg {
+      width: 26px;
+      height: 26px;
+      fill: currentColor;
+      display: block;
+    }
+    .WhatsAppConcierge__Label {
+      white-space: nowrap;
+      opacity: 0;
+      padding-right: 22px;
+      transition: opacity 0.35s ease;
+    }
+
+    {%- comment -%}Expand on hover/focus — desktop pointers only.{%- endcomment -%}
+    @media (hover: hover) and (pointer: fine) {
+      .WhatsAppConcierge:hover,
+      .WhatsAppConcierge:focus-visible {
+        max-width: 420px;
+      }
+      .WhatsAppConcierge:hover .WhatsAppConcierge__Label,
+      .WhatsAppConcierge:focus-visible .WhatsAppConcierge__Label {
+        opacity: 1;
+      }
+    }
+
+    .WhatsAppConcierge:focus-visible {
+      outline: 2px solid {{ settings.button_text_color }};
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .WhatsAppConcierge,
+      .WhatsAppConcierge__Label {
+        transition: none;
+      }
+    }
+
+    {%- unless settings.whatsapp_show_on_mobile -%}
+    @media (max-width: 740px) { .WhatsAppConcierge { display: none; } }
+    {%- endunless -%}
+    {%- unless settings.whatsapp_show_on_desktop -%}
+    @media (min-width: 741px) { .WhatsAppConcierge { display: none; } }
+    {%- endunless -%}
+  </style>
+
+  <a href="{{ wa_href | strip }}"
+     class="WhatsAppConcierge WhatsAppConcierge--{% if settings.whatsapp_position == 'bottom-left' %}left{% else %}right{% endif %}"
+     target="_blank"
+     rel="noopener"
+     aria-label="{{ wa_label | escape }}"
+     data-whatsapp-concierge>
+    <span class="WhatsAppConcierge__Icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01C17.18 3.03 14.69 2 12.04 2zm0 18.02h-.01c-1.52 0-3.01-.41-4.3-1.18l-.31-.18-3.11.82.83-3.04-.2-.31a8.23 8.23 0 0 1-1.26-4.04c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.82c0 4.54-3.7 8.1-8.24 8.1zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/></svg>
+    </span>
+    <span class="WhatsAppConcierge__Label">{{ wa_label | escape }}</span>
+  </a>
+
+  <script>
+    (function () {
+      var el = document.querySelector('[data-whatsapp-concierge]');
+      if (!el) return;
+
+      // Analytics: only push if a dataLayer already exists.
+      el.addEventListener('click', function () {
+        if (window.dataLayer) {
+          window.dataLayer.push({
+            event: 'whatsapp_click',
+            page_type: {{ template.name | json }},
+            product_title: {{ wa_product_title | json }}
+          });
+        }
+      });
+
+      // Offset the button upward when a sticky add-to-cart bar or cookie
+      // banner becomes visible. No-op if none of these elements exist.
+      var selectors = [
+        '[data-sticky-add-to-cart]', '.StickyAtc', '.sticky-atc',
+        '[data-cookie-banner]', '.CookieBanner', '.cookie-banner', '#shopify-pc__banner'
+      ];
+      var bars = [];
+      selectors.forEach(function (sel) {
+        Array.prototype.forEach.call(document.querySelectorAll(sel), function (n) { bars.push(n); });
+      });
+      if (!bars.length || !('IntersectionObserver' in window)) return;
+
+      function recompute() {
+        var max = 0;
+        bars.forEach(function (bar) {
+          if (bar.__waVisible) {
+            var h = bar.getBoundingClientRect().height;
+            if (h > max) max = h;
+          }
+        });
+        el.style.setProperty('--wa-offset-bottom', (max ? max + 12 : 0) + 'px');
+      }
+
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) { entry.target.__waVisible = entry.isIntersecting; });
+        recompute();
+      }, { threshold: 0 });
+
+      bars.forEach(function (bar) { io.observe(bar); });
+    })();
+  </script>
+{%- endunless -%}
+
+{%- endif -%}

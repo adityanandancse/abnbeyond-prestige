@@ -1,0 +1,5 @@
+{%- assign is_por = false -%}
+{%- assign por_tags = product.tags | join: ',' | downcase -%}
+{%- if por_tags contains 'price-on-request' -%}
+  {%- assign is_por = true -%}
+{%- endif -%}

@@ -1,0 +1,52 @@
+<link rel="preload" href="{{ 'abb-inter-400.woff2' | asset_url }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ 'abb-bodoni-400.woff2' | asset_url }}" as="font" type="font/woff2" crossorigin>
+
+{%- comment -%}
+  AB & Beyond type system, self-hosted (SIL OFL 1.1, via Fontsource, latin subset):
+  Bodoni Moda — headings and display (400, 400 italic, 500)
+  Inter — body, navigation, labels, prices (400, 500, 600)
+{%- endcomment -%}
+<style>
+  @font-face {
+    font-family: 'Bodoni Moda';
+    src: url('{{ 'abb-bodoni-400.woff2' | asset_url }}') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Bodoni Moda';
+    src: url('{{ 'abb-bodoni-400i.woff2' | asset_url }}') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Bodoni Moda';
+    src: url('{{ 'abb-bodoni-500.woff2' | asset_url }}') format('woff2');
+    font-weight: 500 700;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    src: url('{{ 'abb-inter-400.woff2' | asset_url }}') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    src: url('{{ 'abb-inter-500.woff2' | asset_url }}') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    src: url('{{ 'abb-inter-600.woff2' | asset_url }}') format('woff2');
+    font-weight: 600 700;
+    font-style: normal;
+    font-display: swap;
+  }
+</style>

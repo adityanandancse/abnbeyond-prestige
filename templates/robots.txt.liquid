@@ -1,0 +1,39 @@
+{%- comment -%}
+  Shopify's default robots output (unchanged), with three extra Disallow rules
+  added to the user-agent "*" group only: faceted, sorted and alternate-view
+  URLs. Collections, products, pages and blogs stay crawlable. Mirrors Shopify's
+  documented robots.txt.liquid whitespace exactly.
+{%- endcomment -%}
+{% for group in robots.default_groups %}
+  {{- group.user_agent }}
+
+  {%- for rule in group.rules %}
+    {{ rule }}
+  {%- endfor %}
+
+  {%- if group.user_agent.value == '*' %}
+    {{ 'Disallow: /*?*view=' }}
+    {{ 'Disallow: /*?*filter.' }}
+    {{ 'Disallow: /*?*sort_by=' }}
+  {%- endif %}
+
+  {%- if group.sitemap != blank %}
+    {{ group.sitemap }}
+  {%- endif %}
+{% endfor %}
+# Answer engines and AI search (GEO): allowed to read products, collections, pages and the journal
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /checkouts/
+Disallow: /account
+Disallow: /search

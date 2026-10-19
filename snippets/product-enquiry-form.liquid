@@ -1,0 +1,61 @@
+{%- include 'por-flag' -%}
+
+{%- if is_por -%}
+  <div class="ProductEnquiry" id="product-enquiry">
+    <h2 class="ProductEnquiry__Title Heading u-h4">{{ 'product.form.enquiry_title' | t }}</h2>
+    <p class="ProductEnquiry__Intro Text--subdued">{{ 'product.form.enquiry_intro' | t }}</p>
+
+    {%- form 'contact', class: 'Form Form--spacingTight' -%}
+      {%- if form.posted_successfully? -%}
+        <p class="Alert Alert--success">{{ 'product.form.enquiry_success' | t }}</p>
+      {%- endif -%}
+
+      {%- if form.errors -%}
+        <div class="Form__Alert Alert Alert--error">
+          <ul class="Alert__ErrorList">
+            {%- for field in form.errors -%}
+              {%- if field == 'form' -%}
+                <li class="Alert__ErrorItem">{{ form.errors.messages[field] }}</li>
+              {%- else -%}
+                <li class="Alert__ErrorItem"><strong>{{ form.errors.translated_fields[field] }}</strong> {{ form.errors.messages[field] }}</li>
+              {%- endif -%}
+            {%- endfor -%}
+          </ul>
+        </div>
+      {%- endif -%}
+
+      <input type="hidden" name="contact[Piece]" value="{{ product.title | escape }}">
+      <input type="hidden" name="contact[Piece URL]" value="{{ shop.url }}{{ product.url }}">
+      <input type="hidden" name="contact[SKU]" value="{{ product.selected_or_first_available_variant.sku | escape }}">
+
+      <div class="Form__Group">
+        <div class="Form__Item">
+          <input type="text" class="Form__Input" name="contact[name]" aria-label="{{ 'contact.form.name' | t }}" placeholder="{{ 'contact.form.name' | t }}" required {% if customer %}value="{{ customer.name }}"{% endif %}>
+          <label class="Form__FloatingLabel">{{ 'contact.form.name' | t }}</label>
+        </div>
+
+        <div class="Form__Item">
+          <input type="email" class="Form__Input" name="contact[email]" aria-label="{{ 'contact.form.email' | t }}" placeholder="{{ 'contact.form.email' | t }}" required {% if customer %}value="{{ customer.email }}"{% endif %}>
+          <label class="Form__FloatingLabel">{{ 'contact.form.email' | t }}</label>
+        </div>
+      </div>
+
+      <div class="Form__Item">
+        <input type="tel" class="Form__Input" name="contact[phone]" aria-label="{{ 'product.form.enquiry_phone' | t }}" placeholder="{{ 'product.form.enquiry_phone' | t }}">
+        <label class="Form__FloatingLabel">{{ 'product.form.enquiry_phone' | t }}</label>
+      </div>
+
+      <div class="Form__Item">
+        <input type="text" class="Form__Input" name="contact[Occasion or date]" aria-label="{{ 'product.form.enquiry_occasion' | t }}" placeholder="{{ 'product.form.enquiry_occasion' | t }}">
+        <label class="Form__FloatingLabel">{{ 'product.form.enquiry_occasion' | t }}</label>
+      </div>
+
+      <div class="Form__Item">
+        <textarea name="contact[body]" cols="30" rows="6" class="Form__Textarea" aria-label="{{ 'contact.form.message' | t }}" placeholder="{{ 'contact.form.message' | t }}"></textarea>
+        <label class="Form__FloatingLabel">{{ 'contact.form.message' | t }}</label>
+      </div>
+
+      <button type="submit" class="Form__Submit Button Button--primary Button--full">{{ 'product.form.enquiry_submit' | t }}</button>
+    {%- endform -%}
+  </div>
+{%- endif -%}

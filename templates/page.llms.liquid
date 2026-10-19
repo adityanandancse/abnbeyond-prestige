@@ -1,0 +1,44 @@
+{%- layout none -%}
+{%- comment -%}
+  llms.txt for AI answer engines (GEO). Assign this template to a page with handle "llms",
+  then add a URL redirect /llms.txt → /pages/llms in Online Store → Navigation → URL redirects.
+  Everything is generated live from the store, so it never goes stale.
+{%- endcomment -%}
+{%- liquid
+  assign brand_name = settings.brand_name | default: shop.name
+  assign origin = request.origin
+-%}
+<!doctype html><html lang="{{ request.locale.iso_code }}"><head><meta charset="utf-8"><meta name="robots" content="noindex, follow"><title>{{ brand_name }} – llms.txt</title><link rel="canonical" href="{{ origin }}{{ page.url }}"></head><body><pre style="white-space:pre-wrap;font:14px/1.6 ui-monospace,monospace;max-width:80ch;margin:2rem auto;padding:0 1rem">
+# {{ brand_name }}
+
+> {{ settings.brand_description | strip_html | strip_newlines }}
+
+{% if settings.brand_tagline != blank %}Tagline: {{ settings.brand_tagline }}
+{% endif %}{% if settings.parent_brand_name != blank %}Parent house: {{ settings.parent_brand_name }}{% if settings.parent_brand_url != blank %} ({{ settings.parent_brand_url }}){% endif %}
+{% endif %}Website: {{ origin }}
+Currency: {{ cart.currency.iso_code }}
+Shipping: free within India; worldwide delivery available.
+Studio: {{ settings.street_address }}, {{ settings.locality }} {{ settings.postal_code }}, India. Hours: {{ settings.opening_hours }}. No appointment needed.
+Contact: {{ settings.telephone }}{% if settings.support_email != blank %} · {{ settings.support_email }}{% endif %}
+{% if settings.social_instagram != blank %}Instagram: {{ settings.social_instagram }}
+{% endif %}
+## Collections
+{% for c in collections %}{% if c.products_count > 0 and c.handle != 'all' and c.handle != 'frontpage' %}
+- [{{ c.title | escape }}]({{ origin }}{{ c.url }}): {{ c.products_count }} pieces{% if c.description != blank %}. {{ c.description | strip_html | strip_newlines | truncate: 160 }}{% endif %}{% endif %}{% endfor %}
+
+## Products
+{% paginate collections.all.products by 250 %}{% for p in collections.all.products %}
+- [{{ p.title | escape }}]({{ origin }}{{ p.url }}): {{ p.price | money_without_trailing_zeros | strip_html }}{% unless p.available %} (sold out){% endunless %}{% if p.type != blank %} · {{ p.type }}{% endif %}{% if p.description != blank %}. {{ p.description | strip_html | strip_newlines | truncate: 180 }}{% endif %}{% endfor %}{% endpaginate %}
+
+## Pages
+{% assign page_handles = 'about-us,contact,contact-us,faq' | split: ',' %}{% for h in page_handles %}{% assign pg = pages[h] %}{% if pg != empty and pg.title != blank %}
+- [{{ pg.title | escape }}]({{ origin }}{{ pg.url }}){% endif %}{% endfor %}
+
+## Journal
+{% for a in blogs.news.articles limit: 20 %}
+- [{{ a.title | escape }}]({{ origin }}{{ a.url }}) ({{ a.published_at | date: '%Y-%m-%d' }}){% endfor %}
+
+## Policies
+{% for policy in shop.policies %}
+- [{{ policy.title | escape }}]({{ origin }}{{ policy.url }}){% endfor %}
+</pre></body></html>

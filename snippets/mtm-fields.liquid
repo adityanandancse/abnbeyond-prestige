@@ -1,0 +1,95 @@
+{%- comment -%}
+  ============================================================================
+  Made-to-measure field data — SINGLE SOURCE OF TRUTH.
+  Plain text, one record per line. Edit here only.
+
+  Field lines (A, B):   key|label|section
+  Garment map (C):      sheet|garment|group|comma,separated,keys
+                        (garment is matched against product.type, case-insensitive;
+                         a garment may appear on several lines, one group each)
+
+  Keys feed AB Measure and must never be renamed. Labels become the readable
+  line-item property names shown in cart and on the order.
+
+  Consumed with {% include 'mtm-fields' %} so these variables share scope:
+    mtm_he, mtm_she, mtm_garments
+  ============================================================================
+{%- endcomment -%}
+
+{%- capture mtm_he -%}
+chest|Chest|Upper Body
+stomach|Stomach|Upper Body
+waist|Waist|Upper Body
+hip|Hip|Upper Body
+shoulder|Shoulder|Upper Body
+sleeves|Sleeve Length|Upper Body
+bicep|Bicep|Upper Body
+cuff|Cuff|Upper Body
+neck|Neck|Upper Body
+trouser_waist|Waist (Trouser)|Bottom
+trouser_hip|Hip (Trouser)|Bottom
+thigh|Thigh|Bottom
+knee|Knee|Bottom
+bottom|Bottom Opening|Bottom
+inseam_length|Inseam Length|Bottom
+len_kurta|Kurta Length|Lengths
+len_sherwani|Sherwani Length|Lengths
+len_shirt|Shirt Length|Lengths
+len_coat|Coat Length|Lengths
+len_jodhpuri_jacket|Jodhpuri Length|Lengths
+len_nehru_jacket|Nehru Jacket Length|Lengths
+len_trouser|Trouser Length|Lengths
+{%- endcapture -%}
+
+{%- capture mtm_she -%}
+shoulder|Shoulder|Top
+upper_bust|Upper Bust|Top
+bust|Bust|Top
+under_bust|Under Bust|Top
+waist|Waist|Top
+hip|Hip|Top
+arm_hole|Arm Hole|Top
+sleeves|Sleeve Length|Top
+bicep|Bicep|Top
+sleeve_hem|Sleeve Hem|Top
+neck_front|Neck Depth (Front)|Top
+neck_back|Neck Depth (Back)|Top
+bottom_waist|Waist (Bottom)|Bottom
+bottom_hip|Hip (Bottom)|Bottom
+thigh|Thigh|Bottom
+knee|Knee|Bottom
+calf|Calf|Bottom
+ankle_hem|Ankle / Hem|Bottom
+crotch_full|Crotch|Bottom
+len_kurta|Kurta Length|Lengths
+len_blouse|Blouse Length|Lengths
+len_jacket|Jacket Length|Lengths
+len_cape|Cape Length|Lengths
+len_skirt|Skirt Length|Lengths
+len_lehenga|Lehenga Length|Lengths
+len_trouser|Bottom / Pant Length|Lengths
+len_full|Full Length|Lengths
+{%- endcapture -%}
+
+{%- capture mtm_garments -%}
+he|kurta|Kurta|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,neck,len_kurta
+he|sherwani|Sherwani|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,neck,len_sherwani
+he|shirt|Shirt|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,neck,len_shirt
+he|coat|Coat|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,len_coat
+he|blazer|Blazer|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,len_coat
+he|jodhpuri|Jodhpuri|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,neck,len_jodhpuri_jacket
+he|bandhgala|Bandhgala|chest,stomach,waist,hip,shoulder,sleeves,bicep,cuff,neck,len_jodhpuri_jacket
+he|nehru jacket|Nehru Jacket|chest,stomach,waist,hip,shoulder,len_nehru_jacket
+he|jawahar jacket|Jawahar Jacket|chest,stomach,waist,hip,shoulder,len_nehru_jacket
+he|trouser|Trouser|trouser_waist,trouser_hip,thigh,knee,bottom,inseam_length,len_trouser
+he|pyjama|Pyjama|trouser_waist,trouser_hip,thigh,bottom,len_trouser
+she|blouse|Blouse|shoulder,upper_bust,bust,under_bust,waist,arm_hole,sleeves,bicep,sleeve_hem,neck_front,neck_back,len_blouse
+she|kurta|Kurta|shoulder,bust,waist,hip,arm_hole,sleeves,bicep,sleeve_hem,neck_front,neck_back,len_kurta
+she|lehenga|Blouse|shoulder,upper_bust,bust,under_bust,waist,arm_hole,sleeves,bicep,sleeve_hem,neck_front,neck_back,len_blouse
+she|lehenga|Lehenga|bottom_waist,bottom_hip,len_lehenga
+she|skirt|Skirt|bottom_waist,bottom_hip,len_skirt
+she|pant|Bottom|bottom_waist,bottom_hip,thigh,knee,calf,ankle_hem,crotch_full,len_trouser
+she|jacket|Jacket|shoulder,bust,waist,hip,arm_hole,sleeves,bicep,len_jacket
+she|cape|Cape|shoulder,bust,len_cape
+she|dress|Dress|shoulder,bust,under_bust,waist,hip,arm_hole,sleeves,neck_front,neck_back,len_full
+{%- endcapture -%}

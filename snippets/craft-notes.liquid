@@ -1,0 +1,126 @@
+{%- comment -%}
+  ============================================================================
+  Craft notes — native product metafields (namespace: custom).
+  Rendered in the product info column after Add to cart, before the description.
+  Outputs nothing unless at least one of the six fields holds a value.
+
+  Fields:
+    custom.story          rich_text_field
+    custom.technique      list.single_line_text_field
+    custom.handwork_hours number_integer
+    custom.fabric         single_line_text_field
+    custom.ready_in       single_line_text_field
+    custom.care           multi_line_text_field
+
+  Headings use the product section settings craft_heading / care_label.
+  No apps, no external scripts, no libraries — reuses the theme's Collapsible.
+  ============================================================================
+{%- endcomment -%}
+
+{%- assign cn_story     = product.metafields.custom.story -%}
+{%- assign cn_technique = product.metafields.custom.technique -%}
+{%- assign cn_hours     = product.metafields.custom.handwork_hours -%}
+{%- assign cn_fabric    = product.metafields.custom.fabric -%}
+{%- assign cn_ready     = product.metafields.custom.ready_in -%}
+{%- assign cn_care      = product.metafields.custom.care -%}
+
+{%- if cn_story != blank or cn_technique != blank or cn_hours != blank or cn_fabric != blank or cn_ready != blank or cn_care != blank -%}
+  {%- assign cn_heading   = section.settings.craft_heading | default: 'The piece' -%}
+  {%- assign cn_care_label = section.settings.care_label | default: 'Care' -%}
+  {%- assign cn_care_id = 'CraftNotes-care-' | append: section.id | append: '-' | append: product.id -%}
+
+  <div class="CraftNotes" data-craft-notes>
+    <h2 class="CraftNotes__Heading Heading u-h5">{{ cn_heading | escape }}</h2>
+
+    {%- if cn_story != blank -%}
+      <div class="CraftNotes__Story Rte">{{ cn_story | metafield_tag }}</div>
+    {%- endif -%}
+
+    {%- if cn_technique != blank or cn_hours != blank or cn_fabric != blank or cn_ready != blank -%}
+      <dl class="CraftNotes__List">
+        {%- if cn_technique != blank -%}
+          <div class="CraftNotes__Row">
+            <dt class="CraftNotes__Term">Technique</dt>
+            <dd class="CraftNotes__Desc">{{ cn_technique.value | join: ', ' | escape }}</dd>
+          </div>
+        {%- endif -%}
+
+        {%- if cn_hours != blank -%}
+          <div class="CraftNotes__Row">
+            <dt class="CraftNotes__Term">Handwork</dt>
+            <dd class="CraftNotes__Desc">About {{ cn_hours.value }} {% if cn_hours.value == 1 %}hour{% else %}hours{% endif %}</dd>
+          </div>
+        {%- endif -%}
+
+        {%- if cn_fabric != blank -%}
+          <div class="CraftNotes__Row">
+            <dt class="CraftNotes__Term">Fabric</dt>
+            <dd class="CraftNotes__Desc">{{ cn_fabric.value | escape }}</dd>
+          </div>
+        {%- endif -%}
+
+        {%- if cn_ready != blank -%}
+          <div class="CraftNotes__Row">
+            <dt class="CraftNotes__Term">Ready in</dt>
+            <dd class="CraftNotes__Desc">{{ cn_ready.value | escape }}</dd>
+          </div>
+        {%- endif -%}
+      </dl>
+    {%- endif -%}
+
+    {%- if cn_care != blank -%}
+      <div class="CraftNotes__Care Collapsible">
+        <button class="Collapsible__Button Heading u-h6" type="button" data-action="toggle-collapsible"
+                aria-expanded="false" aria-controls="{{ cn_care_id }}">
+          {{ cn_care_label | escape }} <span class="Collapsible__Plus"></span>
+        </button>
+
+        <div class="Collapsible__Inner" id="{{ cn_care_id }}">
+          <div class="Collapsible__Content">
+            <div class="Rte">{{ cn_care.value | newline_to_br }}</div>
+          </div>
+        </div>
+      </div>
+    {%- endif -%}
+  </div>
+
+  <style>
+    .CraftNotes { margin: 28px 0 0; }
+    .CraftNotes__Heading { margin: 0 0 16px; }
+    .CraftNotes__Story { margin: 0 0 24px; }
+    .CraftNotes__Story p { line-height: 1.7; }
+
+    .CraftNotes__List { margin: 0; padding: 0; }
+    .CraftNotes__Row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 6px 24px;
+      padding: 14px 0;
+      border-top: 1px solid {{ settings.border_color | default: '#e8e8e8' }};
+    }
+    .CraftNotes__Row:first-child { border-top: 0; }
+    .CraftNotes__Term {
+      margin: 0;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #3A3A38;
+      line-height: 1.6;
+    }
+    .CraftNotes__Desc { margin: 0; line-height: 1.6; }
+
+    /* Care reuses the theme's Collapsible; keep only a top hairline so it sits
+       flush under the definition list without a boxed look. */
+    .CraftNotes__Care.Collapsible { margin-top: 20px; border-bottom: 0; }
+
+    @media (max-width: 640px) {
+      .CraftNotes__Row { grid-template-columns: 1fr; gap: 2px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .CraftNotes .Collapsible__Inner { transition: none; }
+      .CraftNotes .Collapsible__Plus::before,
+      .CraftNotes .Collapsible__Plus::after { transition: none; }
+    }
+  </style>
+{%- endif -%}

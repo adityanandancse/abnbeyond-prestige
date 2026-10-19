@@ -1,0 +1,917 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "AB and Beyond (Prestige)",
+    "theme_author": "Maestrooo",
+    "theme_version": "1.1.1",
+    "theme_documentation_url": "http://support.maestrooo.com/",
+    "theme_support_email": "shopify-support@maestrooo.com"
+  },
+  {
+    "name": "Breadcrumbs",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "show_breadcrumbs",
+        "label": "Show breadcrumbs",
+        "info": "Shows a breadcrumb trail at the top of product, collection, page, blog and article templates.",
+        "default": true
+      }
+    ]
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      {
+        "type": "header",
+        "content": "General"
+      },
+      {
+        "type": "color",
+        "id": "heading_color",
+        "label": "Heading",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "text_color",
+        "label": "Body text",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "text_light_color",
+        "label": "Body light text",
+        "default": "#6a6a6a"
+      },
+      {
+        "type": "color",
+        "id": "link_color",
+        "label": "Link color",
+        "default": "#6a6a6a"
+      },
+      {
+        "type": "color",
+        "id": "background",
+        "label": "Background",
+        "default": "#eaeaea"
+      },
+      {
+        "type": "color",
+        "id": "light_background",
+        "label": "Light background",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "product_on_sale_color",
+        "label": "On sale accent",
+        "default": "#f94c43"
+      },
+      {
+        "type": "header",
+        "content": "Buttons"
+      },
+      {
+        "type": "color",
+        "id": "button_background",
+        "label": "Background",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "button_text_color",
+        "label": "Text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "header",
+        "content": "Header"
+      },
+      {
+        "type": "color",
+        "id": "header_background",
+        "label": "Background",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "header_heading_color",
+        "label": "Heading and icons",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "header_light_color",
+        "label": "Light text",
+        "default": "#6a6a6a"
+      },
+      {
+        "type": "header",
+        "content": "Footer"
+      },
+      {
+        "type": "color",
+        "id": "footer_background",
+        "label": "Background",
+        "default": "#ffffff"
+      },
+      {
+        "type": "color",
+        "id": "footer_heading_color",
+        "label": "Heading",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "footer_text_color",
+        "label": "Text",
+        "default": "#6a6a6a"
+      },
+      {
+        "type": "header",
+        "content": "Sidebar navigation"
+      },
+      {
+        "type": "color",
+        "id": "navigation_background",
+        "label": "Background",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "navigation_text_color",
+        "label": "Text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "header",
+        "content": "Newsletter popup"
+      },
+      {
+        "type": "color",
+        "id": "newsletter_popup_background",
+        "label": "Background",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "newsletter_popup_text_color",
+        "label": "Text",
+        "default": "#ffffff"
+      },
+      {
+        "type": "header",
+        "content": "Secondary elements",
+        "info": "This is used in modals and other secondary elements."
+      },
+      {
+        "type": "color",
+        "id": "secondary_elements_background",
+        "label": "Background",
+        "default": "#1c1b1b"
+      },
+      {
+        "type": "color",
+        "id": "secondary_elements_text_color",
+        "label": "Text",
+        "default": "#ffffff"
+      }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Headings"
+      },
+      {
+        "type": "font_picker",
+        "id": "heading_font",
+        "label": "Font",
+        "default": "helvetica_n4"
+      },
+      {
+        "type": "select",
+        "id": "heading_size",
+        "label": "Size",
+        "info": "All headings (small and large) will be adjusted.",
+        "options": [
+          {
+            "value": "small",
+            "label": "Small"
+          },
+          {
+            "value": "normal",
+            "label": "Normal"
+          },
+          {
+            "value": "large",
+            "label": "Large"
+          }
+        ],
+        "default": "small"
+      },
+      {
+        "type": "checkbox",
+        "id": "uppercase_heading",
+        "label": "Display headings in uppercase",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "Body text"
+      },
+      {
+        "type": "font_picker",
+        "id": "text_font",
+        "label": "Font",
+        "default": "helvetica_n4"
+      },
+      {
+        "type": "range",
+        "id": "base_text_font_size",
+        "label": "Base size",
+        "min": 13,
+        "max": 17,
+        "unit": "px",
+        "default": 14
+      }
+    ]
+  },
+  {
+    "name": "Currency conversion",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "currency_conversion_enabled",
+        "label": "Enable currency conversion",
+        "default": false
+      },
+      {
+        "type": "checkbox",
+        "id": "currency_conversion_round_amounts",
+        "label": "Round converted amounts",
+        "default": true
+      },
+      {
+        "type": "text",
+        "id": "currency_conversion_supported_currencies",
+        "label": "Supported currencies",
+        "info": "List of currencies to display. You must separate each currencies by an empty space, and use the ISO 4217 3-letter code. Example: USD CAD EUR. All the possible values are [listed here](http://bit.ly/1C4cZ3w).",
+        "default": "USD CAD EUR GBP"
+      },
+      {
+        "type": "select",
+        "id": "currency_conversion_money_format",
+        "label": "Money format",
+        "options": [
+          {
+            "value": "money_format",
+            "label": "Money ($10)"
+          },
+          {
+            "value": "money_with_currency_format",
+            "label": "Money with currency ($10 USD)"
+          }
+        ],
+        "default": "money_format"
+      }
+    ]
+  },
+  {
+    "name": "Animation",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "show_page_transition",
+        "label": "Show page transition",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "show_image_zooming",
+        "label": "Show image loading zoom effect",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "show_element_staggering",
+        "label": "Reveal elements one by one",
+        "info": "This setting displays blog post and product grid element one after the other.",
+        "default": true
+      }
+    ]
+  },
+  {
+    "name": "Search",
+    "settings": [
+      {
+        "type": "select",
+        "id": "search_mode",
+        "label": "Search only...",
+        "options": [
+          {
+            "value": "product",
+            "label": "Products only"
+          },
+          {
+            "value": "product,page",
+            "label": "Products and pages"
+          },
+          {
+            "value": "product,article",
+            "label": "Products and articles"
+          },
+          {
+            "value": "product,article,page",
+            "label": "Products, articles and pages"
+          }
+        ],
+        "default": "product,article"
+      }
+    ]
+  },
+  {
+    "name": "Products",
+    "settings": [
+      {
+        "type": "page",
+        "id": "size_chart_page",
+        "label": "Size chart page",
+        "info": "[Learn more](https://support.maestrooo.com/article/172-product-adding-a-size-chart)"
+      },
+      {
+        "type": "header",
+        "content": "Grid"
+      },
+      {
+        "type": "checkbox",
+        "id": "product_show_price_on_hover",
+        "label": "Show price on hover",
+        "info": "Prices will always be visible on touch devices.",
+        "default": false
+      },
+      {
+        "type": "select",
+        "id": "card_hover",
+        "label": "Card hover",
+        "info": "Hover behaviour on product cards (desktop only). \"Video if available\" plays the product's first video muted, otherwise shows the second image.",
+        "options": [
+          {
+            "value": "none",
+            "label": "None"
+          },
+          {
+            "value": "second_image",
+            "label": "Second image"
+          },
+          {
+            "value": "video",
+            "label": "Video if available"
+          }
+        ],
+        "default": "video"
+      },
+      {
+        "type": "select",
+        "id": "product_info_alignment",
+        "label": "Product info alignment",
+        "options": [
+          {
+            "value": "left",
+            "label": "Left"
+          },
+          {
+            "value": "center",
+            "label": "Center"
+          },
+          {
+            "value": "right",
+            "label": "Right"
+          }
+        ],
+        "default": "center"
+      },
+      {
+        "type": "select",
+        "id": "product_image_size",
+        "label": "Product image size",
+        "options": [
+          {
+            "value": "natural",
+            "label": "Natural"
+          },
+          {
+            "value": "short",
+            "label": "Short (4:3)"
+          },
+          {
+            "value": "square",
+            "label": "Square (1:1)"
+          },
+          {
+            "value": "tall",
+            "label": "Tall (2:3)"
+          }
+        ],
+        "default": "natural"
+      },
+      {
+        "type": "select",
+        "id": "product_list_horizontal_spacing",
+        "label": "Horizontal spacing",
+        "options": [
+          {
+            "value": "extra_small",
+            "label": "Extra small"
+          },
+          {
+            "value": "small",
+            "label": "Small"
+          },
+          {
+            "value": "medium",
+            "label": "Medium"
+          },
+          {
+            "value": "large",
+            "label": "Large"
+          },
+          {
+            "value": "extra_large",
+            "label": "Extra large"
+          }
+        ],
+        "default": "medium"
+      },
+      {
+        "type": "select",
+        "id": "product_list_vertical_spacing",
+        "label": "Vertical spacing",
+        "options": [
+          {
+            "value": "extra_small",
+            "label": "Extra small"
+          },
+          {
+            "value": "small",
+            "label": "Small"
+          },
+          {
+            "value": "medium",
+            "label": "Medium"
+          },
+          {
+            "value": "large",
+            "label": "Large"
+          },
+          {
+            "value": "extra_large",
+            "label": "Extra large"
+          }
+        ],
+        "default": "medium"
+      }
+    ]
+  },
+  {
+    "name": "Cart",
+    "settings": [
+      {
+        "type": "select",
+        "id": "cart_type",
+        "label": "Cart type",
+        "options": [
+          {
+            "value": "drawer",
+            "label": "Drawer"
+          },
+          {
+            "value": "page",
+            "label": "Page"
+          }
+        ],
+        "default": "drawer"
+      },
+      {
+        "type": "checkbox",
+        "id": "cart_enable_notes",
+        "label": "Enable order notes",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "cart_show_free_shipping_threshold",
+        "label": "Show free shipping minimum amount",
+        "info": "Make sure that you have properly configured your [shipping rates](/admin/settings/shipping).",
+        "default": false
+      },
+      {
+        "type": "range",
+        "min": 10,
+        "max": 100,
+        "step": 1,
+        "id": "cart_free_shipping_threshold",
+        "label": "Free shipping minimum amount",
+        "default": 50
+      }
+    ]
+  },
+  {
+    "name": "Social media",
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "share_image",
+        "label": "Share image",
+        "info": "This image is used when you share pages such as home page. For product, collection or article pages, the featured image will be used instead."
+      },
+      {
+        "type": "header",
+        "content": "Accounts"
+      },
+      {
+        "type": "text",
+        "id": "social_facebook",
+        "info": "https://www.facebook.com/shopify",
+        "label": "Facebook"
+      },
+      {
+        "type": "text",
+        "id": "social_twitter",
+        "info": "https://twitter.com/shopify",
+        "label": "Twitter"
+      },
+      {
+        "type": "text",
+        "id": "social_google_plus",
+        "info": "https://plus.google.com/+shopify",
+        "label": "Google Plus"
+      },
+      {
+        "type": "text",
+        "id": "social_pinterest",
+        "info": "https://www.pinterest.com/shopify",
+        "label": "Pinterest"
+      },
+      {
+        "type": "text",
+        "id": "social_instagram",
+        "info": "https://instagram.com/shopify",
+        "label": "Instagram"
+      },
+      {
+        "type": "text",
+        "id": "social_vimeo",
+        "info": "https://vimeo.com/shopify",
+        "label": "Vimeo"
+      },
+      {
+        "type": "text",
+        "id": "social_tumblr",
+        "info": "https://shopify.tumblr.com",
+        "label": "Tumblr"
+      },
+      {
+        "type": "text",
+        "id": "social_youtube",
+        "info": "https://www.youtube.com/user/shopify",
+        "label": "YouTube"
+      },
+      {
+        "type": "text",
+        "id": "social_linkedin",
+        "info": "https://linkedin.com/in/shopify",
+        "label": "LinkedIn"
+      },
+      {
+        "type": "text",
+        "id": "social_snapchat",
+        "info": "https://snapchat.com/add/shopify",
+        "label": "Snapchat"
+      },
+      {
+        "type": "text",
+        "id": "social_fancy",
+        "info": "https://fancy.com/Shopify",
+        "label": "Fancy"
+      }
+    ]
+  },
+  {
+    "name": "Favicon",
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "favicon",
+        "label": "Image",
+        "info": "32 x 32px .png recommended"
+      }
+    ]
+  },
+  {
+    "name": "WhatsApp concierge",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "whatsapp_enable",
+        "label": "Enable WhatsApp concierge",
+        "default": true
+      },
+      {
+        "type": "text",
+        "id": "whatsapp_phone",
+        "label": "Phone number",
+        "info": "Digits only, including country code (no +, spaces or dashes).",
+        "default": "919220401585"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp_label",
+        "label": "Button label",
+        "default": "Chat with us"
+      },
+      {
+        "type": "textarea",
+        "id": "whatsapp_default_message",
+        "label": "Default message",
+        "info": "Used for the floating concierge button.",
+        "default": "Hello, I'd like to know more about AB and Beyond."
+      },
+      {
+        "type": "textarea",
+        "id": "whatsapp_product_message",
+        "label": "Product message",
+        "info": "Used for product enquiry buttons. [title] and [url] are replaced automatically.",
+        "default": "Hello, I'd like to know more about [title] – [url]"
+      },
+      {
+        "type": "select",
+        "id": "whatsapp_position",
+        "label": "Position",
+        "options": [
+          {
+            "value": "bottom-right",
+            "label": "Bottom right"
+          },
+          {
+            "value": "bottom-left",
+            "label": "Bottom left"
+          }
+        ],
+        "default": "bottom-right"
+      },
+      {
+        "type": "checkbox",
+        "id": "whatsapp_show_on_mobile",
+        "label": "Show on mobile",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "whatsapp_show_on_desktop",
+        "label": "Show on desktop",
+        "default": true
+      },
+      {
+        "type": "text",
+        "id": "whatsapp_hide_on_templates",
+        "label": "Hide on templates",
+        "info": "Comma-separated template names, e.g. cart,checkout.",
+        "default": "cart"
+      }
+    ]
+  },
+  {
+    "name": "Made to measure",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Controls the custom-size form on product pages. The field keys and garment map are edited in snippets/mtm-fields.liquid."
+      },
+      {
+        "type": "text",
+        "id": "men_tag",
+        "label": "Menswear tag",
+        "info": "Products with this tag use the menswear measurement sheet.",
+        "default": "men"
+      },
+      {
+        "type": "text",
+        "id": "women_tag",
+        "label": "Womenswear tag",
+        "info": "Products with this tag use the womenswear measurement sheet.",
+        "default": "women"
+      },
+      {
+        "type": "url",
+        "id": "guide_url",
+        "label": "How-to-measure guide URL",
+        "info": "Optional. When set, each field shows a 'How to measure' link to this page plus #<key>. Leave empty to hide."
+      }
+    ]
+  },
+  {
+    "name": "My board",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Labels for the six board functions. Used by the save panel on product and collection pages."
+      },
+      {
+        "type": "text",
+        "id": "board_label_mehendi",
+        "label": "Mehendi label",
+        "default": "Mehendi"
+      },
+      {
+        "type": "text",
+        "id": "board_label_haldi",
+        "label": "Haldi label",
+        "default": "Haldi"
+      },
+      {
+        "type": "text",
+        "id": "board_label_sangeet",
+        "label": "Sangeet label",
+        "default": "Sangeet"
+      },
+      {
+        "type": "text",
+        "id": "board_label_wedding",
+        "label": "Wedding label",
+        "default": "Wedding"
+      },
+      {
+        "type": "text",
+        "id": "board_label_reception",
+        "label": "Reception label",
+        "default": "Reception"
+      },
+      {
+        "type": "text",
+        "id": "board_label_other",
+        "label": "Other label",
+        "default": "Other"
+      }
+    ]
+  },
+  {
+    "name": "Business details",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Powers the structured data (JSON-LD) in the page head. All fields are optional unless noted; the store block only appears once a street address is set."
+      },
+      {
+        "type": "text",
+        "id": "brand_name",
+        "label": "Brand name",
+        "default": "AB and Beyond"
+      },
+      {
+        "type": "text",
+        "id": "brand_alternate_name",
+        "label": "Alternate name",
+        "default": "AB & Beyond"
+      },
+      {
+        "type": "image_picker",
+        "id": "brand_logo",
+        "label": "Logo",
+        "info": "Square or wide logo for search results. Falls back to the social share image if empty."
+      },
+      {
+        "type": "textarea",
+        "id": "brand_description",
+        "label": "Description",
+        "info": "Up to 300 characters.",
+        "default": "The prêt and contemporary line of Achin Bindlish."
+      },
+      {
+        "type": "text",
+        "id": "founding_year",
+        "label": "Founding year"
+      },
+      {
+        "type": "header",
+        "content": "Address"
+      },
+      {
+        "type": "text",
+        "id": "street_address",
+        "label": "Street address"
+      },
+      {
+        "type": "text",
+        "id": "locality",
+        "label": "City / locality"
+      },
+      {
+        "type": "text",
+        "id": "region",
+        "label": "State / region"
+      },
+      {
+        "type": "text",
+        "id": "postal_code",
+        "label": "Postal code"
+      },
+      {
+        "type": "text",
+        "id": "country_code",
+        "label": "Country code",
+        "info": "Two-letter ISO code.",
+        "default": "IN"
+      },
+      {
+        "type": "text",
+        "id": "latitude",
+        "label": "Latitude",
+        "info": "Optional."
+      },
+      {
+        "type": "text",
+        "id": "longitude",
+        "label": "Longitude",
+        "info": "Optional."
+      },
+      {
+        "type": "header",
+        "content": "Contact & hours"
+      },
+      {
+        "type": "text",
+        "id": "telephone",
+        "label": "Telephone",
+        "info": "In +country format, e.g. +919220401585.",
+        "default": "+919220401585"
+      },
+      {
+        "type": "textarea",
+        "id": "opening_hours",
+        "label": "Opening hours",
+        "info": "One rule per line, e.g. Mo-Sa 11:00-20:00."
+      },
+      {
+        "type": "text",
+        "id": "area_served",
+        "label": "Area served",
+        "info": "Comma-separated ISO country codes.",
+        "default": "IN, Worldwide"
+      },
+      {
+        "type": "header",
+        "content": "Brand & policy"
+      },
+      {
+        "type": "textarea",
+        "id": "sub_brands",
+        "label": "Sub-brands",
+        "info": "One per line."
+      },
+      {
+        "type": "number",
+        "id": "return_days",
+        "label": "Return window (days)",
+        "info": "Optional. Leave empty if returns are not offered."
+      },
+      {
+        "type": "checkbox",
+        "id": "ships_internationally",
+        "label": "Ships internationally",
+        "default": true
+      },
+      {
+        "type": "header",
+        "content": "Parent house"
+      },
+      {
+        "type": "text",
+        "id": "parent_brand_name",
+        "label": "Parent brand",
+        "default": "Achin Bindlish"
+      },
+      {
+        "type": "url",
+        "id": "parent_brand_url",
+        "label": "Parent brand website",
+        "default": "https://www.achinbindlish.com"
+      },
+      {
+        "type": "text",
+        "id": "brand_tagline",
+        "label": "Tagline",
+        "default": "From the heirloom to the here and now."
+      },
+      {
+        "type": "text",
+        "id": "support_email",
+        "label": "Customer email",
+        "default": "helpdesk@abandbeyond.com"
+      }
+    ]
+  }
+]

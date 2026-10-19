@@ -1,0 +1,572 @@
+/* AB & Beyond — overrides of Prestige core (plain CSS, loaded after theme.scss.css) */
+
+.Select option,
+select option {
+  background-color: #EAE7E0;
+  color: #141414;
+}
+
+/* ShopTheLook light dot: #fff / white -> Ivory (mirror of base .ShopTheLook__Dot) */
+.ShopTheLook__Dot--light {
+  background: #FFFFFF;
+}
+.ShopTheLook__Dot--light::after {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ============================================================
+   Mulish type system — weight & tracking overrides
+   Loaded after theme.scss.css. No font-size changes here.
+   ============================================================ */
+
+/* ---------- Buttons & caps ---------------------------------- */
+/* Each selector equals or exceeds its theme source so load order wins:
+   .Button                                     <- .Button (0,1,0)
+   .Form__Submit                               <- wrapper; control is .Button
+   .ShopTheLook__ViewButton                    <- itself a .Button (0,1,0)
+   .SizeTiles__Legend                          <- .SizeTiles__Legend (0,1,0)
+   .CustomSize__Legend                         <- .CustomSize__Legend (0,1,0)
+   .Table th                                   <- .Table th (0,1,1)
+   .SizeTile                                   <- .SizeTile (0,1,0)
+   .CustomSize__OptionInner                    <- .CustomSize__OptionInner (0,1,0)
+   .Form__Label                                <- .Form__Label (0,1,0)
+   .Select--transparent select                 <- .Select--transparent select (0,1,1)
+   .shopify-challenge__container .shopify-challenge__button
+                                               <- .shopify-challenge__container .shopify-challenge__button (0,2,0)
+   #shopify-product-reviews .spr-review-header-title
+                                               <- #shopify-product-reviews .spr-review-header-title (1,1,0)
+   .Instafeed__Date                            <- .Instafeed__Date (0,1,0) */
+.Button,
+.Form__Submit,
+.ShopTheLook__ViewButton,
+.SizeTiles__Legend,
+.CustomSize__Legend,
+.Table th,
+.Rte table th,
+.SizeTile,
+.CustomSize__OptionInner,
+.Form__Label,
+.Select--transparent select,
+.shopify-challenge__container .shopify-challenge__button,
+#shopify-product-reviews .spr-review-header-title,
+.Instafeed__Date {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Navigation -------------------------------------- */
+/* Scoped to each nav container so product accordions, collection filters
+   and non-nav .Heading elements are untouched. (0,2,0) beats .Heading (0,1,0);
+   .MegaMenu__Title (0,1,0) wins by load order. */
+.Header__MainNav .Heading,
+.MegaMenu__Title,
+.SidebarMenu__Nav .Heading {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Body -------------------------------------------- */
+body {
+  line-height: 1.7;
+}
+
+/* ---------- Bold ---------------------------------------------- */
+/* Mulish's uniform stroke reads heavy at 700; theme base is b, strong { font-weight: bold } at theme.scss.liquid:179 (0,0,1) — equal selector wins by load order. */
+b,
+strong {
+  font-weight: 600;
+}
+
+/* ---------- Display headings (home + collection header) ------- */
+/* Section headings (.SectionHeader__Heading, rendered as .Heading.u-h1).
+   Mobile < 641px: 24px → under-32 rule (400, 0). Tablet and up: 32px → display rule (300, -0.01em).
+   Home scoped to body.template-index; collection header scoped to [data-section-type="collection"]
+   so "Recently viewed" (also .SectionHeader__Heading, a separate section) is untouched.
+   (0,2,0) beats .u-h1 size rules. Size set by class, never by tag. */
+.template-index .SectionHeader__Heading,
+[data-section-type="collection"] .SectionHeader__Heading {
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+@media screen and (min-width: 641px) {
+  .template-index .SectionHeader__Heading,
+  [data-section-type="collection"] .SectionHeader__Heading {
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ---------- Collection header intro (Description) ------------- */
+/* Editorial intro under the collection title, scoped to the collection section.
+   (0,2,0) beats .SectionHeader__Description (max-width 530px) and the inherited Rte
+   color; margin-auto ties .SectionHeader--center and wins on load order. */
+[data-section-type="collection"] .SectionHeader__Description {
+  color: #3A3A38;        /* Sand */
+  line-height: 1.7;
+  max-width: 60ch;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+[data-section-type="collection"] .SectionHeader__Description b,
+[data-section-type="collection"] .SectionHeader__Description strong {
+  color: #141414;        /* Ivory */
+  font-weight: 600;
+}
+
+/* ---------- Collection header spacing (plain PageHeader) ------ */
+/* Theme hooks reused:
+     above-title / intro->toolbar  = .PageHeader margin (was 35px mobile / 50px tablet, theme.scss.liquid:4827,4913)
+     title -> intro gap            = heading margin-bottom (theme phone 10px @4907, tablet 0)
+   margin-top can't carry the title->intro gap - theme forces heading/description
+   margin-top:0 !important (theme.scss.liquid:4876) - so the gap rides on heading margin-bottom.
+   :not(.PageHeader--withBackground) leaves the image-hero variant untouched. No !important. */
+[data-section-type="collection"] .PageHeader:not(.PageHeader--withBackground) {
+  margin-top: 40px;      /* space above title - mobile */
+  margin-bottom: 32px;   /* intro -> toolbar - mobile */
+}
+
+[data-section-type="collection"] .SectionHeader__Heading {
+  margin-bottom: 18px;   /* title -> intro gap */
+}
+
+@media screen and (min-width: 641px) {
+  [data-section-type="collection"] .PageHeader:not(.PageHeader--withBackground) {
+    margin-top: 70px;    /* space above title - tablet and up */
+    margin-bottom: 56px; /* intro -> toolbar - tablet and up */
+  }
+}
+
+/* ---------- Collection toolbar + filter popover --------------- */
+/* Filter (left) / Sort (right) at every breakpoint. The theme reverses
+   .CollectionToolbar__Group at >=641px (theme.scss.liquid ~7090); neutralise
+   it and keep the group full width so the two items stay 50/50. */
+@media screen and (min-width: 641px) {
+  .CollectionToolbar__Group {
+    -ms-flex: 1 0 auto;
+    flex: 1 0 auto;
+    -ms-flex-direction: row;
+    flex-direction: row;
+  }
+  .CollectionToolbar__Group .CollectionToolbar__Item:first-child {
+    border-left: none;
+  }
+}
+
+/* Tag labels: "-" already swapped for " " in Liquid; capitalise each word here
+   (Liquid has no per-word filter). Scoped to the filter popover only. */
+#collection-filter-popover .Popover__Value {
+  text-transform: capitalize;
+}
+
+/* ---------- Collection popovers: desktop placement ------------ */
+/* Lap-and-up only. The theme keeps .Popover position: fixed here (theme.scss.liquid
+   ~5246) and ab-collection-filter.js now sets only `top`, so we own the horizontal
+   placement. Centre each popover under its half of the toolbar. `right: auto` is
+   !important to beat any inline right the activator JS might set. */
+@media screen and (min-width: 1008px) {
+  #collection-filter-popover {
+    left: 25%;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
+  #collection-sort-popover {
+    left: 75%;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
+
+  /* Theme arrow (theme.scss.liquid ~5341):
+       .Popover::before { content:''; position:absolute; right:40px; width:10px; height:10px; border-style:solid; }
+       .Popover--positionBottom::before { bottom:100%; border-width:0 10px 10px 10px; ... }
+     Re-centre the arrow (width 10px → offset half = 5px). */
+  #collection-filter-popover::before,
+  #collection-sort-popover::before {
+    left: 50%;
+    right: auto;
+    margin-left: -5px;
+  }
+
+  #collection-filter-popover .Popover__ValueList,
+  #collection-sort-popover .Popover__ValueList {
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+
+    scrollbar-width: thin;
+    scrollbar-color: #D9D6CF #EAE7E0;
+  }
+
+  #collection-filter-popover .Popover__Value,
+  #collection-sort-popover .Popover__Value {
+    text-align: center;
+  }
+
+  #collection-filter-popover .Popover__ValueList::-webkit-scrollbar,
+  #collection-sort-popover .Popover__ValueList::-webkit-scrollbar {
+    width: 6px;
+  }
+  #collection-filter-popover .Popover__ValueList::-webkit-scrollbar-track,
+  #collection-sort-popover .Popover__ValueList::-webkit-scrollbar-track {
+    background: #EAE7E0;
+  }
+  #collection-filter-popover .Popover__ValueList::-webkit-scrollbar-thumb,
+  #collection-sort-popover .Popover__ValueList::-webkit-scrollbar-thumb {
+    background: #D9D6CF;
+    border-radius: 3px;
+  }
+}
+
+/* ---------- Collection infinite scroll ----------------------- */
+/* Pagination kept in the DOM for SEO / no-JS; JS hides it visually. */
+.ab-is-pagination-hidden { display: none !important; }
+
+.ab-is-sentinel { width: 100%; height: 1px; }
+
+.ab-is-loader {
+  display: none;
+  width: 100%;
+  padding: 24px 0 40px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3A3A38;            /* Sand */
+}
+.ab-is-loader.is-visible { display: block; }
+
+/* ---------- Collection grid reveal --------------------------- */
+/* We own the reveal for the whole collection grid (page one + infinite-scroll
+   appends) instead of the theme's scroll-gated GSAP, which left cells it never
+   tweened stuck at the pre-hide `.js .ProductList--grid .ProductItem
+   { visibility: hidden }` (theme.scss.liquid:7150). !important is required to beat
+   that pre-hide AND GSAP's inline autoAlpha styles; scoped to the collection grid. */
+.CollectionInner__Products .ProductItem {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Page one (server-rendered cells, no .ab-in): pure-CSS staggered fade. No JS
+   gating, so nothing can get stuck hidden. Stagger the first 16 by source order. */
+.CollectionInner__Products .Grid__Cell:not(.ab-in) {
+  animation: ab-reveal 0.6s ease-out both;
+}
+.CollectionInner__Products .Grid__Cell:nth-child(1)  { animation-delay: 0ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(2)  { animation-delay: 60ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(3)  { animation-delay: 120ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(4)  { animation-delay: 180ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(5)  { animation-delay: 240ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(6)  { animation-delay: 300ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(7)  { animation-delay: 360ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(8)  { animation-delay: 420ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(9)  { animation-delay: 480ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(10) { animation-delay: 540ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(11) { animation-delay: 600ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(12) { animation-delay: 660ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(13) { animation-delay: 720ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(14) { animation-delay: 780ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(15) { animation-delay: 840ms; }
+.CollectionInner__Products .Grid__Cell:nth-child(16) { animation-delay: 900ms; }
+
+/* Appended cells (JS adds .ab-in + --ab-i per batch): same fade, batch-staggered. */
+.CollectionInner__Products .Grid__Cell.ab-in {
+  animation: ab-reveal 0.6s ease-out both;
+  animation-delay: calc(var(--ab-i, 0) * 60ms);
+}
+
+@keyframes ab-reveal {
+  from { opacity: 0; transform: translateY(25px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .CollectionInner__Products .Grid__Cell:not(.ab-in),
+  .CollectionInner__Products .Grid__Cell.ab-in {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   Wedding board (Phase 5a) — save buttons, panel dialog, board page.
+   Palette mirrors the compiled theme tokens (bg #F4F2ED, light #EAE7E0,
+   text #141414, subdued #3A3A38, accent #141414, border rgba ivory 0.15).
+   ========================================================================== */
+
+/* ---- Product-page inline save button ---- */
+.AbSave__Row { margin-top: 12px; text-align: center; }
+.AbSave--inline {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: none; border: 0; padding: 6px 4px; margin: 0;
+  font: inherit; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #3A3A38; cursor: pointer;
+}
+.AbSave--inline:hover { color: #141414; }
+.AbSave--inline .AbSave__Glyph { font-size: 15px; line-height: 1; letter-spacing: 0; }
+.AbSave--inline.is-saved { color: #141414; }
+.AbSave--inline:focus-visible { outline: 2px solid #141414; outline-offset: 2px; }
+.AbSave__Note { display: block; margin-top: 6px; font-size: 12px; }
+
+/* ---- Product-card corner heart ---- */
+.AbSave--card {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  width: 36px; height: 36px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(36, 26, 20, 0.55);
+  color: #141414;
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out, background 0.2s ease;
+}
+.AbSave--card svg { width: 19px; height: 19px; display: block; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.AbSave--card.is-saved { color: #141414; }
+.AbSave--card.is-saved svg { fill: #141414; stroke: #141414; }
+.AbSave--card:focus-visible { outline: 2px solid #141414; outline-offset: 2px; opacity: 1; }
+.ProductItem:hover .AbSave--card,
+.AbSave--card:focus-visible { opacity: 1; }
+/* Always visible on touch (no hover). */
+.no-supports-hover .AbSave--card { opacity: 1; }
+@media (hover: none), (pointer: coarse) { .AbSave--card { opacity: 1; } }
+
+/* ---- Save panel (dialog) + overlay ---- */
+.AbBoard__Overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(20, 20, 20, 0.5);
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.AbBoard__Overlay.is-visible { opacity: 1; }
+.AbBoard__Panel {
+  position: fixed; z-index: 1001; right: 24px; bottom: 24px;
+  width: 380px; max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px); overflow-y: auto;
+  background: #EAE7E0; color: #141414;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  padding: 22px 22px 20px;
+  transform: translateY(12px); opacity: 0; visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.645,0.045,0.355,1), opacity 0.3s, visibility 0.3s;
+}
+.AbBoard__Panel.is-visible { transform: none; opacity: 1; visibility: visible; }
+.AbBoard__Head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.AbBoard__Title { margin: 0; }
+.AbBoard__Close {
+  background: none; border: 0; color: #3A3A38; font-size: 24px; line-height: 1;
+  padding: 0 4px; cursor: pointer;
+}
+.AbBoard__Close:hover { color: #141414; }
+.AbBoard__Product { margin: 0 0 16px; font-size: 13px; }
+.AbBoard__Existing { margin: 0 0 18px; padding-bottom: 16px; border-bottom: 1px solid rgba(20, 20, 20, 0.15); }
+.AbBoard__EntryList { list-style: none; margin: 8px 0 0; padding: 0; }
+.AbBoard__Entry { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 13px; }
+.AbBoard__Remove { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: #3A3A38; cursor: pointer; }
+.AbBoard__Remove:hover { color: #141414; }
+.AbBoard__Field { border: 0; padding: 0; margin: 0 0 16px; }
+.AbBoard__Legend {
+  display: block; margin: 0 0 8px; padding: 0;
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #3A3A38;
+}
+.AbBoard__Chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.AbBoard__Chip { position: relative; }
+.AbBoard__Chip input { position: absolute; opacity: 0; width: 0; height: 0; }
+.AbBoard__Chip span {
+  display: inline-block; padding: 7px 14px; cursor: pointer;
+  border: 1px solid rgba(20, 20, 20, 0.25); border-radius: 999px;
+  font-size: 12px; letter-spacing: 0.04em;
+}
+.AbBoard__Chip input:checked + span { background: #141414; color: #F4F2ED; border-color: #141414; }
+.AbBoard__Chip input:focus-visible + span { outline: 2px solid #141414; outline-offset: 2px; }
+.AbBoard__Input {
+  width: 100%; box-sizing: border-box; padding: 10px 12px;
+  background: #F4F2ED; color: #141414;
+  border: 1px solid rgba(20, 20, 20, 0.25); border-radius: 0;
+  font: inherit; font-size: 14px;
+}
+.AbBoard__Input:focus-visible { outline: 2px solid #141414; outline-offset: 1px; }
+.AbBoard__Names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.AbBoard__NameChip {
+  background: none; border: 1px solid rgba(20, 20, 20, 0.25); border-radius: 999px;
+  padding: 4px 10px; font: inherit; font-size: 12px; color: #3A3A38; cursor: pointer;
+}
+.AbBoard__NameChip:hover { color: #141414; border-color: #141414; }
+.AbBoard__Actions { display: flex; gap: 10px; margin-top: 6px; }
+.AbBoard__Actions .Button { flex: 1; }
+
+@media (max-width: 600px) {
+  .AbBoard__Panel {
+    right: 0; left: 0; bottom: 0; width: 100%; max-width: none;
+    max-height: 85vh;
+    transform: translateY(100%);
+  }
+  .AbBoard__Panel.is-visible { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .AbBoard__Overlay, .AbBoard__Panel { transition: none; }
+}
+
+/* ---- Board page ---- */
+.MyBoard__Intro { max-width: 720px; margin: 0 auto 36px; text-align: center; }
+.MyBoard__Group { margin: 0 0 48px; }
+.MyBoard__GroupHeading {
+  font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #3A3A38;
+  margin: 0 0 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(20, 20, 20, 0.15);
+}
+.MyBoard__Grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px 20px; }
+.MyBoard__Item { text-align: left; }
+.MyBoard__Thumb { display: block; width: 100%; height: auto; background: #F4F2ED; margin-bottom: 10px; }
+.MyBoard__ItemTitle { display: block; font-size: 14px; margin: 0 0 6px; }
+.MyBoard__ItemTitle a { color: inherit; text-decoration: none; }
+.MyBoard__ItemTitle a:hover { text-decoration: underline; }
+.MyBoard__Who {
+  display: inline-block; margin: 0 0 8px; padding: 3px 10px;
+  border: 1px solid rgba(20, 20, 20, 0.25); border-radius: 999px;
+  font-size: 11px; letter-spacing: 0.06em; color: #3A3A38;
+}
+.MyBoard__Price { display: block; font-size: 13px; color: #3A3A38; margin-bottom: 10px; }
+.MyBoard__ItemActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12px; }
+.MyBoard__ItemActions .Select--board { position: relative; }
+.MyBoard__Select {
+  background: #F4F2ED; color: #141414; border: 1px solid rgba(20, 20, 20, 0.25);
+  padding: 5px 8px; font: inherit; font-size: 12px;
+}
+.MyBoard__Link { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: #3A3A38; cursor: pointer; text-decoration: underline; }
+.MyBoard__Link:hover { color: #141414; }
+.MyBoard__WhoEdit { width: 110px; background: #F4F2ED; color: #141414; border: 1px solid rgba(20, 20, 20, 0.25); padding: 4px 8px; font: inherit; font-size: 12px; }
+.MyBoard__Item--gone .MyBoard__Thumb { display: flex; align-items: center; justify-content: center; min-height: 160px; color: #3A3A38; font-size: 13px; }
+.MyBoard__Empty { max-width: 620px; margin: 40px auto 80px; text-align: center; }
+.MyBoard__Empty p { color: #3A3A38; }
+
+@media (max-width: 900px) { .MyBoard__Grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .MyBoard__Grid { grid-template-columns: repeat(2, 1fr); gap: 22px 14px; } }
+
+/* ============================================================
+   Location map (sections/ab-location.liquid)
+   Two columns tablet-and-up (text ~40 / map ~60), stacked on
+   mobile (text then map). Palette: Mocha #D9D6CF (border),
+   Cacao #EAE7E0 (loading bg), Sand #3A3A38 (text).
+   ============================================================ */
+
+/* Columns — stacked on mobile, text then map. */
+.AbLocation {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;                 /* stacked, mobile */
+}
+
+/* Map wrapper: ratio by class, Mocha border, Cacao bg while loading. */
+.AbLocation__Map {
+  position: relative;
+  border: 1px solid #D9D6CF; /* Mocha */
+  background: #EAE7E0;       /* Cacao — shown until the iframe paints */
+  overflow: hidden;
+}
+
+.AbLocation__Map--16x10 { aspect-ratio: 16 / 10; }
+.AbLocation__Map--4x3   { aspect-ratio: 4 / 3; }
+.AbLocation__Map--1x1   { aspect-ratio: 1 / 1; }
+
+/* Iframe fills the wrapper, no border of its own. */
+.AbLocation__Frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Dark toning when the section opts in. */
+.AbLocation--darkMap .AbLocation__Frame {
+  filter: invert(90%) hue-rotate(180deg) sepia(20%) saturate(80%) brightness(95%);
+}
+
+/* Address / hours copy. */
+.AbLocation__Address,
+.AbLocation__Hours {
+  color: #3A3A38;            /* Sand */
+  line-height: 1.7;
+}
+
+/* Primary button sits 32px below the copy. */
+.AbLocation__Directions {
+  margin-top: 32px;
+}
+
+/* Tablet-and-up: 40 / 60 split, 48px gutter. */
+@media screen and (min-width: 641px) {
+  .AbLocation {
+    flex-direction: row;
+    align-items: center;
+    gap: 48px;
+  }
+  .AbLocation__Info {
+    -ms-flex: 0 0 40%;
+    flex: 0 0 40%;
+    max-width: 40%;
+  }
+  .AbLocation__MapColumn {
+    -ms-flex: 1 1 60%;
+    flex: 1 1 60%;
+    max-width: 60%;
+  }
+  /* No map: let the text occupy the full row. */
+  .AbLocation--noMap .AbLocation__Info {
+    -ms-flex-preferred-size: 100%;
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+}
+
+
+/* ============================================================================
+   AB & Beyond type split
+   Bodoni Moda (heading font) stays on display headings, section titles,
+   product titles and prices-of-record. Small UI headings — nav, buttons,
+   labels, toolbars, micro-caps (.u-h6–.u-h8) — move to Inter so tracked
+   uppercase stays crisp at 10–13px.
+   ============================================================================ */
+.Button,
+.Form__Submit,
+.Heading.u-h6,
+.Heading.u-h7,
+.Heading.u-h8,
+.u-h6, .u-h7, .u-h8,
+.Header__MainNav .Heading,
+.Header__SecondaryNav .Heading,
+.Header__Icon,
+.MegaMenu__Title,
+.MegaMenu__Item .Link,
+.SidebarMenu__Nav .Heading,
+.SidebarMenu .Text--subdued,
+.CollectionToolbar__Item,
+.Popover__Title,
+.Popover__Value,
+.Form__Label,
+.ProductForm__Label,
+.ProductItem__Vendor,
+.SizeTile,
+.Table th,
+.Footer__Title,
+.Breadcrumb__Item,
+.AnnouncementBar__Content {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Bodoni needs a little air: no bold synthesis, softer tracking. */
+.Heading:not(.u-h6):not(.u-h7):not(.u-h8),
+.SectionHeader__Heading,
+.ProductMeta__Title {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Square, monochrome UI */
+.Button,
+.Form__Input,
+.Form__Textarea,
+.Select select {
+  border-radius: 0;
+}

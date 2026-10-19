@@ -1,0 +1,203 @@
+{%- comment -%}
+  Single linked JSON-LD graph for the whole theme. Rendered once in
+  layout/theme.liquid <head>. One <script type="application/ld+json"> with
+  "@context":"https://schema.org" and "@graph":[...]. Every string is | json.
+
+  Comma safety: optional object properties and every dynamic array element are
+  prefixed with a comma only when something already precedes them (the
+  "{% if acc != blank %},{% endif %}" accumulator), so there are never trailing
+  or leading commas. No legal-entity name is emitted anywhere.
+
+  Stable @ids:
+    {{ shop.url }}/#organization  /#website  /#store
+    {{ canonical_url }}#product  #webpage  #article  #breadcrumb
+{%- endcomment -%}
+
+{%- comment -%} Skip metaobject pages — their own section owns the JSON-LD. {%- endcomment -%}
+{%- unless request.page_type == 'metaobject' or template.name == 'metaobject' -%}
+
+{%- comment -%} ---- Business details ---- {%- endcomment -%}
+{%- assign biz_name = settings.brand_name | default: shop.name -%}
+{%- assign biz_alt = settings.brand_alternate_name | default: 'AB' -%}
+{%- assign biz_desc = settings.brand_description -%}
+{%- assign biz_founding = settings.founding_year -%}
+{%- assign biz_street = settings.street_address -%}
+{%- assign biz_locality = settings.locality -%}
+{%- assign biz_region = settings.region -%}
+{%- assign biz_postal = settings.postal_code -%}
+{%- assign biz_country = settings.country_code | default: 'IN' -%}
+{%- assign biz_lat = settings.latitude -%}
+{%- assign biz_long = settings.longitude -%}
+{%- assign biz_tel = settings.telephone -%}
+{%- assign biz_hours = settings.opening_hours -%}
+{%- assign biz_area = settings.area_served | default: 'IN' -%}
+{%- assign biz_subs = settings.sub_brands -%}
+{%- assign biz_return = settings.return_days -%}
+
+{%- assign org_id = shop.url | append: '/#organization' -%}
+{%- assign website_id = shop.url | append: '/#website' -%}
+{%- assign store_id = shop.url | append: '/#store' -%}
+{%- assign webpage_id = canonical_url | append: '#webpage' -%}
+
+{%- comment -%} ---- Logo (from brand_logo, else share image) ---- {%- endcomment -%}
+{%- assign biz_logo = settings.brand_logo | default: settings.share_image -%}
+{%- capture logo_url -%}{%- if biz_logo != blank -%}https:{{ biz_logo | image_url: width: 600 }}{%- endif -%}{%- endcapture -%}
+{%- assign logo_url = logo_url | strip -%}
+
+{%- comment -%} ---- sameAs (non-empty socials) ---- {%- endcomment -%}
+{%- assign sameas_items = '' -%}
+{%- if settings.social_instagram != blank -%}{%- capture sameas_items -%}{{ sameas_items }}{% if sameas_items != blank %},{% endif %}{{ settings.social_instagram | json }}{%- endcapture -%}{%- endif -%}
+{%- if settings.social_facebook != blank -%}{%- capture sameas_items -%}{{ sameas_items }}{% if sameas_items != blank %},{% endif %}{{ settings.social_facebook | json }}{%- endcapture -%}{%- endif -%}
+{%- if settings.social_youtube != blank -%}{%- capture sameas_items -%}{{ sameas_items }}{% if sameas_items != blank %},{% endif %}{{ settings.social_youtube | json }}{%- endcapture -%}{%- endif -%}
+{%- if settings.social_pinterest != blank -%}{%- capture sameas_items -%}{{ sameas_items }}{% if sameas_items != blank %},{% endif %}{{ settings.social_pinterest | json }}{%- endcapture -%}{%- endif -%}
+
+{%- comment -%} ---- areaServed ---- {%- endcomment -%}
+{%- assign area_items = '' -%}
+{%- assign area_list = biz_area | split: ',' -%}
+{%- for a in area_list -%}{%- assign a = a | strip -%}{%- if a != blank -%}{%- capture area_items -%}{{ area_items }}{% if area_items != blank %},{% endif %}{{ a | json }}{%- endcapture -%}{%- endif -%}{%- endfor -%}
+
+{%- comment -%} ---- brand (one Brand per sub_brands line) ---- {%- endcomment -%}
+{%- assign brand_items = '' -%}
+{%- assign sub_lines = biz_subs | strip | split: '
+' -%}
+{%- for b in sub_lines -%}{%- assign b = b | strip -%}{%- if b != blank -%}{%- capture brand_items -%}{{ brand_items }}{% if brand_items != blank %},{% endif %}{"@type":"Brand","name":{{ b | json }}}{%- endcapture -%}{%- endif -%}{%- endfor -%}
+
+{%- comment -%} ======================= Organization ======================= {%- endcomment -%}
+{%- capture org_node -%}
+{"@type":"Organization","@id":{{ org_id | json }},"name":{{ biz_name | json }},"alternateName":{{ biz_alt | json }},"url":{{ shop.url | json }},"contactPoint":{"@type":"ContactPoint","telephone":{{ biz_tel | json }},"contactType":"customer service","areaServed":[{{ area_items }}],"availableLanguage":["en","hi"]}
+{%- if logo_url != blank %},"logo":{"@type":"ImageObject","url":{{ logo_url | json }}}{% endif %}
+{%- if biz_desc != blank %},"description":{{ biz_desc | json }}{% endif %}
+{%- if biz_founding != blank %},"foundingDate":{{ biz_founding | json }}{% endif %}
+{%- if sameas_items != blank %},"sameAs":[{{ sameas_items }}]{% endif %}
+{%- if brand_items != blank %},"brand":[{{ brand_items }}]{% endif %}
+{%- if settings.parent_brand_name != blank %},"parentOrganization":{"@type":"Organization","name":{{ settings.parent_brand_name | json }}{% if settings.parent_brand_url != blank %},"url":{{ settings.parent_brand_url | json }}{% endif %}}{% endif %}
+{%- if settings.brand_tagline != blank %},"slogan":{{ settings.brand_tagline | json }}{% endif %}
+{%- if settings.support_email != blank %},"email":{{ settings.support_email | json }}{% endif %}
+}
+{%- endcapture -%}
+
+{%- comment -%} ========================= WebSite =========================== {%- endcomment -%}
+{%- capture website_node -%}
+{"@type":"WebSite","@id":{{ website_id | json }},"name":{{ biz_name | json }},"alternateName":{{ biz_alt | json }},"url":{{ shop.url | json }},"publisher":{"@id":{{ org_id | json }}},"inLanguage":"en-IN","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":{{ shop.url | append: '/search?q={search_term_string}' | json }}},"query-input":"required name=search_term_string"}}
+{%- endcapture -%}
+
+{%- comment -%} ===================== ClothingStore ========================= {%- endcomment -%}
+{%- assign store_node = '' -%}
+{%- if biz_street != blank -%}
+  {%- capture geo_json -%}{%- if biz_lat != blank and biz_long != blank -%},"geo":{"@type":"GeoCoordinates","latitude":{{ biz_lat | json }},"longitude":{{ biz_long | json }}}{%- endif -%}{%- endcapture -%}
+  {%- assign oh_items = '' -%}
+  {%- if biz_hours != blank -%}
+    {%- assign oh_lines = biz_hours | strip | split: '
+' -%}
+    {%- for l in oh_lines -%}{%- assign l = l | strip -%}{%- if l != blank -%}{%- capture oh_items -%}{{ oh_items }}{% if oh_items != blank %},{% endif %}{{ l | json }}{%- endcapture -%}{%- endif -%}{%- endfor -%}
+  {%- endif -%}
+  {%- capture store_node -%}
+{"@type":"ClothingStore","@id":{{ store_id | json }},"name":{{ biz_name | json }},"url":{{ shop.url | json }},"telephone":{{ biz_tel | json }},"priceRange":"₹₹₹","parentOrganization":{"@id":{{ org_id | json }}},"address":{"@type":"PostalAddress","streetAddress":{{ biz_street | json }}{% if biz_locality != blank %},"addressLocality":{{ biz_locality | json }}{% endif %}{% if biz_region != blank %},"addressRegion":{{ biz_region | json }}{% endif %}{% if biz_postal != blank %},"postalCode":{{ biz_postal | json }}{% endif %},"addressCountry":{{ biz_country | json }}}{{ geo_json }}
+{%- if logo_url != blank %},"image":{{ logo_url | json }}{% endif %}
+{%- if oh_items != blank %},"openingHours":[{{ oh_items }}]{% endif %}
+}
+  {%- endcapture -%}
+{%- endif -%}
+
+{%- comment -%} ==================== Per-template node ====================== {%- endcomment -%}
+{%- assign page_node = '' -%}
+
+{%- if template.name == 'product' -%}
+  {%- assign por = false -%}
+  {%- assign por_tags = product.tags | join: ',' | downcase -%}
+  {%- if por_tags contains 'price-on-request' -%}{%- assign por = true -%}{%- endif -%}
+
+  {%- assign prod_url = product.url | prepend: shop.url -%}
+  {%- assign product_graph_id = canonical_url | append: '#product' -%}
+  {%- assign v_sku = product.selected_or_first_available_variant.sku -%}
+  {%- assign fabric_txt = product.metafields.custom.fabric.value -%}
+  {%- assign technique_txt = '' -%}
+  {%- if product.metafields.custom.technique != blank -%}{%- assign technique_txt = product.metafields.custom.technique.value | join: ', ' -%}{%- endif -%}
+
+  {%- assign images_items = '' -%}
+  {%- for image in product.images limit: 5 -%}{%- capture images_items -%}{{ images_items }}{% if images_items != blank %},{% endif %}{{ image | image_url: width: 1200 | prepend: 'https:' | json }}{%- endcapture -%}{%- endfor -%}
+
+  {%- capture return_policy -%}{%- if biz_return != blank and biz_return > 0 -%},"hasMerchantReturnPolicy":{"@type":"MerchantReturnPolicy","applicableCountry":{{ biz_country | json }},"returnPolicyCategory":"https://schema.org/MerchantReturnFiniteReturnWindow","merchantReturnDays":{{ biz_return }}}{%- endif -%}{%- endcapture -%}
+
+  {%- assign offers_json = '' -%}
+  {%- unless por -%}
+    {%- assign cur = cart.currency.iso_code -%}
+    {%- if product.variants.size > 1 -%}
+      {%- capture offers_json -%}"offers":{"@type":"AggregateOffer","priceCurrency":{{ cur | json }},"lowPrice":{{ product.price_min | money_without_currency | remove: ',' | json }},"highPrice":{{ product.price_max | money_without_currency | remove: ',' | json }},"offerCount":{{ product.variants.size }},"availability":{% if product.available %}"https://schema.org/InStock"{% else %}"https://schema.org/OutOfStock"{% endif %},"itemCondition":"https://schema.org/NewCondition","url":{{ prod_url | json }},"seller":{"@id":{{ org_id | json }}}{{ return_policy }}}{%- endcapture -%}
+    {%- else -%}
+      {%- assign v = product.selected_or_first_available_variant -%}
+      {%- capture offers_json -%}"offers":{"@type":"Offer","priceCurrency":{{ cur | json }},"price":{{ v.price | money_without_currency | remove: ',' | json }},"availability":{% if v.available %}"https://schema.org/InStock"{% else %}"https://schema.org/OutOfStock"{% endif %},"itemCondition":"https://schema.org/NewCondition","url":{{ prod_url | json }},"seller":{"@id":{{ org_id | json }}}{{ return_policy }}}{%- endcapture -%}
+    {%- endif -%}
+  {%- endunless -%}
+
+  {%- capture page_node -%}
+{"@type":"Product","@id":{{ product_graph_id | json }},"name":{{ product.title | json }},"url":{{ canonical_url | json }},"description":{{ product.description | strip_html | truncate: 500 | json }},"brand":{"@type":"Brand","name":{{ biz_name | json }}}
+{%- if images_items != blank %},"image":[{{ images_items }}]{% endif %}
+{%- if v_sku != blank %},"sku":{{ v_sku | json }}{% endif %}
+{%- if fabric_txt != blank %},"material":{{ fabric_txt | json }}{% endif %}
+{%- if product.type != blank %},"category":{{ product.type | json }}{% endif %}
+{%- if technique_txt != blank %},"additionalProperty":{"@type":"PropertyValue","name":"Technique","value":{{ technique_txt | json }}}{% endif %}
+{%- if offers_json != blank %},{{ offers_json | strip }}{% endif %}
+}
+  {%- endcapture -%}
+
+{%- elsif template.name == 'collection' -%}
+  {%- assign itemlist = '' -%}
+  {%- for p in collection.products limit: 24 -%}{%- capture itemlist -%}{{ itemlist }}{% if itemlist != blank %},{% endif %}{"@type":"ListItem","position":{{ forloop.index }},"name":{{ p.title | json }},"url":{{ p.url | prepend: shop.url | json }}}{%- endcapture -%}{%- endfor -%}
+  {%- capture page_node -%}
+{"@type":"CollectionPage","@id":{{ webpage_id | json }},"name":{{ collection.title | json }},"url":{{ canonical_url | json }},"isPartOf":{"@id":{{ website_id | json }}}
+{%- if collection.description != blank %},"description":{{ collection.description | strip_html | truncate: 300 | json }}{% endif %}
+{%- if itemlist != blank %},"mainEntity":{"@type":"ItemList","itemListElement":[{{ itemlist }}]}{% endif %}
+}
+  {%- endcapture -%}
+
+{%- elsif template.name == 'page' -%}
+  {%- assign ab_type = 'WebPage' -%}
+  {%- assign is_about = false -%}
+  {%- if page.handle == 'about' or template.suffix == 'about' -%}{%- assign ab_type = 'AboutPage' -%}{%- assign is_about = true -%}{%- endif -%}
+  {%- if page.handle == 'contact' or page.handle == 'book-fitting' or template.suffix == 'contact' or template.suffix == 'book-fitting' -%}{%- assign ab_type = 'ContactPage' -%}{%- endif -%}
+  {%- capture page_node -%}
+{"@type":{{ ab_type | json }},"@id":{{ webpage_id | json }},"name":{{ page.title | json }},"url":{{ canonical_url | json }},"isPartOf":{"@id":{{ website_id | json }}}
+{%- if is_about %},"about":{"@id":{{ org_id | json }}}{% endif %}
+}
+  {%- endcapture -%}
+
+{%- elsif template.name == 'article' -%}
+  {%- capture page_node -%}
+{"@type":"Article","@id":{{ canonical_url | append: '#article' | json }},"headline":{{ article.title | json }},"url":{{ canonical_url | json }},"datePublished":{{ article.published_at | date: '%Y-%m-%dT%T%z' | json }},"dateModified":{{ article.published_at | date: '%Y-%m-%dT%T%z' | json }},"mainEntityOfPage":{{ canonical_url | json }},"publisher":{"@id":{{ org_id | json }}},"author":{% if article.author != blank %}{"@type":"Person","name":{{ article.author | json }}}{% else %}{"@id":{{ org_id | json }}}{% endif %}
+{%- if article.image %},"image":{{ article.image | image_url: width: 1200 | prepend: 'https:' | json }}{% endif %}
+}
+  {%- endcapture -%}
+
+{%- elsif template.name == 'index' -%}
+  {%- capture page_node -%}
+{"@type":"WebPage","@id":{{ webpage_id | json }},"name":{{ page_title | json }},"url":{{ canonical_url | json }},"isPartOf":{"@id":{{ website_id | json }}},"about":{"@id":{{ org_id | json }}}}
+  {%- endcapture -%}
+{%- endif -%}
+
+{%- comment -%} ==================== BreadcrumbList ========================= {%- endcomment -%}
+{%- assign bc_json = '' -%}
+{%- if template.name == 'product' or template.name == 'collection' or template.name == 'page' or template.name == 'article' -%}
+  {%- include 'breadcrumb-trail' -%}
+  {%- if bc_render -%}
+    {%- assign bc_lines = bc_trail | strip | split: '
+' -%}
+    {%- assign bc_items = '' -%}
+    {%- assign bc_pos = 0 -%}
+    {%- for line in bc_lines -%}
+      {%- assign line = line | strip -%}{%- if line == blank %}{% continue %}{% endif -%}
+      {%- assign parts = line | split: '|~|' -%}
+      {%- assign cname = parts[0] | strip -%}
+      {%- assign curl = parts[1] | strip -%}
+      {%- if curl == blank -%}{%- assign abs_url = canonical_url -%}{%- else -%}{%- assign abs_url = curl | prepend: shop.url -%}{%- endif -%}
+      {%- assign bc_pos = bc_pos | plus: 1 -%}
+      {%- capture bc_items -%}{{ bc_items }}{% if bc_items != blank %},{% endif %}{"@type":"ListItem","position":{{ bc_pos }},"name":{{ cname | json }},"item":{{ abs_url | json }}}{%- endcapture -%}
+    {%- endfor -%}
+    {%- capture bc_json -%}{"@type":"BreadcrumbList","@id":{{ canonical_url | append: '#breadcrumb' | json }},"itemListElement":[{{ bc_items }}]}{%- endcapture -%}
+  {%- endif -%}
+{%- endif -%}
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{{ org_node | strip }},{{ website_node | strip }}{% if store_node != blank %},{{ store_node | strip }}{% endif %}{% if page_node != blank %},{{ page_node | strip }}{% endif %}{% if bc_json != blank %},{{ bc_json | strip }}{% endif %}]}
+</script>
+{%- endunless -%}

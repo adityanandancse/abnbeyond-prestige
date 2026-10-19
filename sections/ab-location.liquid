@@ -1,0 +1,133 @@
+{%- comment -%}
+  Location map — address + an embedded Google Map with NO API key.
+  The map uses Google's keyless /maps?q=...&output=embed endpoint.
+  Addable on the home page (preset) and statically on the contact page.
+  Layout and palette live in assets/ab-design.css ("Location map" group).
+{%- endcomment -%}
+
+{%- assign has_map = false -%}
+{%- if section.settings.map_query != blank -%}
+  {%- assign has_map = true -%}
+{%- endif -%}
+{%- assign ratio_class = section.settings.map_ratio | replace: ':', 'x' -%}
+
+<section class="Section Section--spacingNormal{% if section.settings.dark_map %} AbLocation--darkMap{% endif %}"
+         id="section-{{ section.id }}"
+         data-section-id="{{ section.id }}"
+         data-section-type="ab-location">
+  <div class="Container">
+    {%- if section.settings.subheading != blank or section.settings.title != blank -%}
+      <header class="SectionHeader">
+        {%- if section.settings.subheading != blank -%}
+          <h3 class="SectionHeader__SubHeading Heading u-h6">{{ section.settings.subheading | escape }}</h3>
+        {%- endif -%}
+
+        {%- if section.settings.title != blank -%}
+          <h2 class="SectionHeader__Heading Heading u-h1">{{ section.settings.title | escape }}</h2>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    <div class="AbLocation{% unless has_map %} AbLocation--noMap{% endunless %}">
+      <div class="AbLocation__Info">
+        {%- if section.settings.address != blank -%}
+          <div class="AbLocation__Address Rte">{{ section.settings.address }}</div>
+        {%- endif -%}
+
+        {%- if section.settings.hours != blank -%}
+          <div class="AbLocation__Hours Rte">{{ section.settings.hours }}</div>
+        {%- endif -%}
+
+        {%- if has_map and section.settings.button_label != blank -%}
+          <a class="AbLocation__Directions Button Button--primary"
+             href="https://www.google.com/maps/dir/?api=1&destination={{ section.settings.map_query | url_encode }}"
+             target="_blank" rel="noopener">
+            {{- section.settings.button_label | escape -}}
+          </a>
+        {%- endif -%}
+      </div>
+
+      {%- if has_map -%}
+        <div class="AbLocation__MapColumn">
+          <div class="AbLocation__Map AbLocation__Map--{{ ratio_class }}">
+            <iframe class="AbLocation__Frame"
+                    src="https://www.google.com/maps?q={{ section.settings.map_query | url_encode }}&output=embed"
+                    title="Map: {{ section.settings.map_query | escape }}"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    allowfullscreen></iframe>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Location map",
+  "class": "shopify-section--bordered",
+  "settings": [
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Sub-heading",
+      "default": "Delhi"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "Visit the studio"
+    },
+    {
+      "type": "richtext",
+      "id": "address",
+      "label": "Address",
+      "default": "<p>D-49, Third Floor<br>Defence Colony<br>New Delhi 110024</p>"
+    },
+    {
+      "type": "richtext",
+      "id": "hours",
+      "label": "Hours",
+      "info": "Optional. Leave blank to hide."
+    },
+    {
+      "type": "text",
+      "id": "map_query",
+      "label": "Map query",
+      "info": "Use the business name as it appears on Google Maps so the pin lands on your listing.",
+      "default": "AB and Beyond, Defence Colony, New Delhi 110024"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Get directions"
+    },
+    {
+      "type": "checkbox",
+      "id": "dark_map",
+      "label": "Tone the map to the dark palette",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "map_ratio",
+      "label": "Map ratio",
+      "options": [
+        { "value": "16:10", "label": "16:10" },
+        { "value": "4:3", "label": "4:3" },
+        { "value": "1:1", "label": "1:1" }
+      ],
+      "default": "16:10"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Location map",
+      "category": "Text"
+    }
+  ]
+}
+{% endschema %}

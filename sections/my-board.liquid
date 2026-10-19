@@ -1,0 +1,269 @@
+{%- comment -%}
+  My board — renders the browser-stored board (window.AbBoard, from ab-board.js).
+  Each unique handle is fetched once from /products/<handle>.js (native AJAX API)
+  and cached in sessionStorage for the visit. Grouped by function in fixed order.
+{%- endcomment -%}
+
+{%- assign empty_link = section.settings.empty_link | default: '/collections/all' -%}
+
+<div class="Container MyBoard" data-my-board>
+  <header class="MyBoard__Intro">
+    {%- if section.settings.heading != blank -%}
+      <h1 class="Heading u-h1">{{ section.settings.heading | escape }}</h1>
+    {%- endif -%}
+    {%- if section.settings.intro != blank -%}
+      <div class="Rte">{{ section.settings.intro }}</div>
+    {%- endif -%}
+  </header>
+
+  <div class="u-visually-hidden" aria-live="polite" role="status" data-mb-live></div>
+
+  <div data-mb-groups></div>
+
+  <div class="MyBoard__Empty" data-mb-empty hidden>
+    {%- if section.settings.empty_heading != blank -%}
+      <h2 class="Heading u-h3">{{ section.settings.empty_heading | escape }}</h2>
+    {%- endif -%}
+    {%- if section.settings.empty_text != blank -%}
+      <p>{{ section.settings.empty_text | escape }}</p>
+    {%- endif -%}
+    <a class="Button Button--primary" href="{{ empty_link }}">{{ section.settings.empty_link_text | default: 'Browse the collections' | escape }}</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.querySelector('[data-my-board]');
+  if (!root) { return; }
+
+  var LABELS = {
+    mehendi: {{ section.settings.label_mehendi | default: 'Mehendi' | json }},
+    haldi: {{ section.settings.label_haldi | default: 'Haldi' | json }},
+    sangeet: {{ section.settings.label_sangeet | default: 'Sangeet' | json }},
+    wedding: {{ section.settings.label_wedding | default: 'Wedding' | json }},
+    reception: {{ section.settings.label_reception | default: 'Reception' | json }},
+    other: {{ section.settings.label_other | default: 'Other' | json }}
+  };
+  var FN_ORDER = ['mehendi', 'haldi', 'sangeet', 'wedding', 'reception', 'other'];
+
+  var groupsEl = root.querySelector('[data-mb-groups]');
+  var emptyEl = root.querySelector('[data-mb-empty]');
+  var liveEl = root.querySelector('[data-mb-live]');
+  var cache = {};
+
+  function announce(msg) { if (liveEl) { liveEl.textContent = ''; liveEl.textContent = msg; } }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function unique(v, i, a) { return a.indexOf(v) === i; }
+
+  function sizedImage(url, w) {
+    if (!url) { return ''; }
+    return url.replace(/(\.(?:jpe?g|png|webp|gif))(\?|$)/i, '_' + w + 'x$1$2');
+  }
+
+  function money(cents) {
+    var fmt = (window.theme && window.theme.moneyFormat) || {% raw %}'${{amount}}'{% endraw %};
+    function f(c, precision, thousand, decimal) {
+      if (isNaN(c) || c == null) { c = 0; }
+      var value = (c / 100).toFixed(precision);
+      var parts = value.split('.');
+      var whole = parts[0].replace(/(\d)(?=(\d\d\d)+(?!\d))/g, '$1' + thousand);
+      return whole + (parts[1] ? decimal + parts[1] : '');
+    }
+    return fmt.replace(/\{\{\s*(\w+)\s*\}\}/g, function (m, name) {
+      switch (name) {
+        case 'amount': return f(cents, 2, ',', '.');
+        case 'amount_no_decimals': return f(cents, 0, ',', '.');
+        case 'amount_with_comma_separator': return f(cents, 2, '.', ',');
+        case 'amount_no_decimals_with_comma_separator': return f(cents, 0, '.', ',');
+        case 'amount_with_space_separator': return f(cents, 2, ' ', '.');
+        case 'amount_no_decimals_with_space_separator': return f(cents, 0, ' ', '');
+        case 'amount_with_apostrophe_separator': return f(cents, 2, "'", '.');
+        default: return f(cents, 2, ',', '.');
+      }
+    });
+  }
+
+  function fetchProduct(handle) {
+    if (handle in cache) { return Promise.resolve(cache[handle]); }
+    try {
+      var ss = sessionStorage.getItem('ab_board_p_' + handle);
+      if (ss) { cache[handle] = JSON.parse(ss); return Promise.resolve(cache[handle]); }
+    } catch (e) {}
+    return fetch('/products/' + encodeURIComponent(handle) + '.js', { headers: { Accept: 'application/json' } })
+      .then(function (r) { if (!r.ok) { throw new Error('nf'); } return r.json(); })
+      .then(function (p) {
+        cache[handle] = p;
+        try { sessionStorage.setItem('ab_board_p_' + handle, JSON.stringify(p)); } catch (e) {}
+        return p;
+      })
+      .catch(function () { cache[handle] = null; return null; });
+  }
+
+  function card(it) {
+    var p = cache[it.handle];
+    if (p === null || p === undefined) {
+      return '<div class="MyBoard__Item MyBoard__Item--gone" data-mb-id="' + esc(it.id) + '">' +
+        '<div class="MyBoard__Thumb">No longer available</div>' +
+        '<div class="MyBoard__ItemActions">' +
+          '<button type="button" class="MyBoard__Link" data-mb-remove="' + esc(it.id) + '">Remove</button>' +
+        '</div></div>';
+    }
+    var tags = (p.tags || []).join(',').toLowerCase();
+    var por = tags.indexOf('price-on-request') >= 0;
+    var price = por ? 'Price on request' : money(p.price);
+    var thumb = p.featured_image ? sizedImage(p.featured_image, 400) : '';
+    var dims = (p.media && p.media[0] && p.media[0].preview_image) ? p.media[0].preview_image : null;
+    var h = dims && dims.aspect_ratio ? Math.round(400 / dims.aspect_ratio) : 500;
+    var fnOptions = FN_ORDER.map(function (f) {
+      return '<option value="' + f + '"' + (f === it.fn ? ' selected' : '') + '>' + esc(LABELS[f] || f) + '</option>';
+    }).join('');
+
+    return '<div class="MyBoard__Item" data-mb-id="' + esc(it.id) + '">' +
+      (thumb ? '<a href="' + esc(p.url) + '"><img class="MyBoard__Thumb" src="' + esc(thumb) + '" loading="lazy" width="400" height="' + h + '" alt="' + esc(p.title) + '"></a>' : '') +
+      '<span class="MyBoard__ItemTitle"><a href="' + esc(p.url) + '">' + esc(p.title) + '</a></span>' +
+      '<span class="MyBoard__Who" data-mb-who="' + esc(it.id) + '">' + esc(it.who) + '</span>' +
+      '<span class="MyBoard__Price">' + esc(price) + '</span>' +
+      '<div class="MyBoard__ItemActions">' +
+        '<label class="u-visually-hidden" for="mb-fn-' + esc(it.id) + '">Function for ' + esc(p.title) + '</label>' +
+        '<select class="MyBoard__Select" id="mb-fn-' + esc(it.id) + '" data-mb-fn="' + esc(it.id) + '">' + fnOptions + '</select>' +
+        '<button type="button" class="MyBoard__Link" data-mb-edit="' + esc(it.id) + '">Edit name</button>' +
+        '<button type="button" class="MyBoard__Link" data-mb-remove="' + esc(it.id) + '">Remove</button>' +
+      '</div></div>';
+  }
+
+  function render() {
+    var api = window.AbBoard;
+    var items = api ? api.items() : [];
+    if (!items.length) { groupsEl.innerHTML = ''; emptyEl.hidden = false; return; }
+    emptyEl.hidden = true;
+
+    var handles = items.map(function (i) { return i.handle; }).filter(unique);
+    Promise.all(handles.map(fetchProduct)).then(function () {
+      var html = '';
+      FN_ORDER.forEach(function (fn) {
+        var groupItems = items.filter(function (i) { return i.fn === fn; });
+        if (!groupItems.length) { return; }
+        html += '<section class="MyBoard__Group"><h2 class="MyBoard__GroupHeading">' + esc(LABELS[fn] || fn) + '</h2>' +
+                '<div class="MyBoard__Grid">';
+        groupItems.forEach(function (it) { html += card(it); });
+        html += '</div></section>';
+      });
+      groupsEl.innerHTML = html;
+    });
+  }
+
+  // Delegated board actions.
+  groupsEl.addEventListener('click', function (e) {
+    var t = e.target;
+    var rm = t.closest ? t.closest('[data-mb-remove]') : null;
+    if (rm && window.AbBoard) { window.AbBoard.remove(rm.getAttribute('data-mb-remove')); announce('Removed from your board'); return; }
+
+    var ed = t.closest ? t.closest('[data-mb-edit]') : null;
+    if (ed && window.AbBoard) {
+      var id = ed.getAttribute('data-mb-edit');
+      var whoEl = groupsEl.querySelector('[data-mb-who="' + id + '"]');
+      if (!whoEl || whoEl.querySelector('input')) { return; }
+      var current = whoEl.textContent;
+      whoEl.innerHTML = '<input class="MyBoard__WhoEdit" type="text" maxlength="30" value="' + esc(current) + '" aria-label="Name">';
+      var input = whoEl.querySelector('input');
+      input.focus(); input.select();
+      var done = false;
+      function commit() {
+        if (done) { return; }
+        done = true;
+        window.AbBoard.update(id, { who: input.value });
+        announce('Name updated');
+      }
+      input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } else if (ev.key === 'Escape') { render(); } });
+      input.addEventListener('blur', commit);
+    }
+  });
+
+  groupsEl.addEventListener('change', function (e) {
+    var sel = e.target.closest ? e.target.closest('[data-mb-fn]') : null;
+    if (sel && window.AbBoard) {
+      window.AbBoard.update(sel.getAttribute('data-mb-fn'), { fn: sel.value });
+      announce('Moved to ' + (LABELS[sel.value] || sel.value));
+    }
+  });
+
+  function start() {
+    if (!window.AbBoard) { return; }
+    render();
+    window.AbBoard.on(render);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "My board",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "My board"
+    },
+    {
+      "type": "richtext",
+      "id": "intro",
+      "label": "Intro"
+    },
+    {
+      "type": "header",
+      "content": "Empty state"
+    },
+    {
+      "type": "text",
+      "id": "empty_heading",
+      "label": "Empty heading",
+      "default": "Your board is empty"
+    },
+    {
+      "type": "text",
+      "id": "empty_text",
+      "label": "Empty text",
+      "default": "Save pieces as you browse and group them by function and person."
+    },
+    {
+      "type": "url",
+      "id": "empty_link",
+      "label": "Empty link",
+      "default": "/collections/all"
+    },
+    {
+      "type": "text",
+      "id": "empty_link_text",
+      "label": "Empty link text",
+      "default": "Browse the collections"
+    },
+    {
+      "type": "header",
+      "content": "Function labels"
+    },
+    { "type": "text", "id": "label_mehendi", "label": "Mehendi label", "default": "Mehendi" },
+    { "type": "text", "id": "label_haldi", "label": "Haldi label", "default": "Haldi" },
+    { "type": "text", "id": "label_sangeet", "label": "Sangeet label", "default": "Sangeet" },
+    { "type": "text", "id": "label_wedding", "label": "Wedding label", "default": "Wedding" },
+    { "type": "text", "id": "label_reception", "label": "Reception label", "default": "Reception" },
+    { "type": "text", "id": "label_other", "label": "Other label", "default": "Other" }
+  ],
+  "presets": [
+    {
+      "category": "Page",
+      "name": "My board"
+    }
+  ]
+}
+{% endschema %}

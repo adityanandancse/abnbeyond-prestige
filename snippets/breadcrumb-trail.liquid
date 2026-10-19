@@ -1,0 +1,48 @@
+{%- comment -%}
+  Shared breadcrumb trail — single source of truth for both the visible
+  breadcrumbs (snippets/breadcrumbs.liquid) and the JSON-LD BreadcrumbList
+  (snippets/schema-graph.liquid). Include (not render) so the assigns below are
+  visible to the caller.
+
+  Outputs two variables:
+    bc_render  — true when a trail should be shown (product/collection/page/blog/article)
+    bc_trail   — newline-separated records "name|~|url"; the final record has an
+                 empty url (the current page). Names are raw (callers escape).
+{%- endcomment -%}
+
+{%- assign bc_render = false -%}
+{%- assign bc_trail = '' -%}
+
+{%- if template.name == 'product' or template.name == 'collection' or template.name == 'page' or template.name == 'blog' or template.name == 'article' -%}
+  {%- assign bc_render = true -%}
+  {%- capture bc_trail -%}
+Home|~|{{ routes.root_url }}
+{%- case template.name -%}
+{%- when 'product' -%}
+  {%- assign crumb_collection = nil -%}
+  {%- if collection and collection.handle != 'all' and collection.handle != 'frontpage' -%}
+    {%- assign crumb_collection = collection -%}
+  {%- else -%}
+    {%- for c in product.collections -%}
+      {%- if c.handle != 'all' and c.handle != 'frontpage' -%}
+        {%- assign crumb_collection = c -%}
+        {%- break -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+  {%- if crumb_collection %}
+{{ crumb_collection.title }}|~|{{ crumb_collection.url }}
+  {%- endif %}
+{{ product.title }}|~|
+{%- when 'collection' %}
+{{ collection.title }}|~|
+{%- when 'page' %}
+{{ page.title }}|~|
+{%- when 'blog' %}
+{{ blog.title }}|~|
+{%- when 'article' %}
+{{ blog.title }}|~|{{ blog.url }}
+{{ article.title }}|~|
+{%- endcase -%}
+  {%- endcapture -%}
+{%- endif -%}

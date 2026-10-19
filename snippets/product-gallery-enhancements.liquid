@@ -1,0 +1,190 @@
+{%- comment -%}
+  Product gallery enhancements — native only, no libraries.
+  1. Desktop (pointer:fine, lap-and-up) hover magnifier that pans a large source
+     (2400w or the original if smaller), loaded on first hover. Click still opens
+     the theme's existing PhotoSwipe viewer (this layer is pointer-events:none).
+  2. Native Shopify-hosted video: muted/loop/playsinline autoplay while >=50% in
+     view (IntersectionObserver), paused out of view, with an accessible play/pause
+     button. prefers-reduced-motion: no autoplay, poster + play button shown.
+  Included once per product section.
+{%- endcomment -%}
+
+<style>
+  /* ---- Native video cell ---- */
+  .Product__SlideItem--video .AspectRatio { background: #000; }
+  .Product__Video {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    -o-object-fit: cover; object-fit: cover;
+  }
+  .Product__VideoToggle {
+    position: absolute; left: 16px; bottom: 16px; z-index: 3;
+    display: -webkit-box; display: -ms-flexbox; display: flex;
+    -webkit-box-align: center; -ms-flex-align: center; align-items: center;
+    -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center;
+    width: 44px; height: 44px; padding: 0;
+    border: 0; border-radius: 50%;
+    background: {{ settings.background | default: '#fff' }};
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+  }
+  .Product__VideoToggle:focus-visible { outline: 2px solid #141414; outline-offset: 2px; }
+  .Product__VideoToggleIcon {
+    display: block; width: 0; height: 0;
+    border-style: solid;
+    border-width: 7px 0 7px 12px;
+    border-color: transparent transparent transparent currentColor;
+    margin-left: 2px;
+  }
+  /* Playing → pause glyph (two bars) */
+  .Product__SlideItem--video.is-playing .Product__VideoToggleIcon {
+    width: 12px; height: 14px; margin-left: 0;
+    border: 0;
+    border-left: 4px solid currentColor;
+    border-right: 4px solid currentColor;
+  }
+
+  /* ---- Desktop hover magnifier ---- */
+  .Product__ZoomLayer {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2;
+    background-repeat: no-repeat;
+    background-size: 220%;
+    pointer-events: none;
+    opacity: 0;
+    -webkit-transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease;
+  }
+  .Product__ZoomLayer.is-active { opacity: 1; }
+
+  @media (max-width: 1023px), (hover: none), (pointer: coarse) {
+    .Product__ZoomLayer { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .Product__ZoomLayer { -webkit-transition: none; transition: none; }
+  }
+</style>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* --------------------------------------------------------------------- */
+  /* Native video: autoplay in view + play/pause button                    */
+  /* --------------------------------------------------------------------- */
+  var cells = document.querySelectorAll('[data-product-video]');
+  if (cells.length) {
+    Array.prototype.forEach.call(cells, function (cell) {
+      var video  = cell.querySelector('[data-product-video-el]');
+      var toggle = cell.querySelector('[data-product-video-toggle]');
+      var label  = cell.querySelector('[data-product-video-label]');
+      if (!video) return;
+
+      var userPaused = false;
+
+      function ui(playing) {
+        cell.classList.toggle('is-playing', playing);
+        if (toggle) toggle.setAttribute('aria-pressed', playing ? 'true' : 'false');
+        if (label) label.textContent = playing ? 'Pause video' : 'Play video';
+      }
+      function play() {
+        var p = video.play();
+        if (p && p.catch) p.catch(function () {});
+      }
+
+      video.addEventListener('play', function () { ui(true); });
+      video.addEventListener('pause', function () { ui(false); });
+
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          if (video.paused) { userPaused = false; play(); }
+          else { userPaused = true; video.pause(); }
+        });
+      }
+
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+              if (!reduce && !userPaused) play();
+            } else if (!video.paused) {
+              video.pause();
+            }
+          });
+        }, { threshold: [0, 0.5, 1] });
+        io.observe(video);
+      }
+
+      ui(false);
+    });
+  }
+
+  /* --------------------------------------------------------------------- */
+  /* Desktop hover magnifier                                               */
+  /* --------------------------------------------------------------------- */
+  var zoomMq = window.matchMedia && window.matchMedia('(min-width: 1024px) and (pointer: fine)');
+  var slideshow = document.querySelector('.Product__Slideshow');
+  if (slideshow && zoomMq && zoomMq.matches) {
+    var layer = null, activeBox = null, cache = {};
+
+    function sizedUrl(master, w) {
+      if (!master) return '';
+      return master.replace(/(\.(?:jpe?g|png|webp|gif))(\?|$)/i, '_' + w + 'x$1$2');
+    }
+    function largeFor(img) {
+      var id = img.getAttribute('data-image-id') || img.src;
+      if (cache[id]) return cache[id];
+      var master = img.getAttribute('data-original-src');
+      var maxW = parseInt(img.getAttribute('data-max-width'), 10) || 2400;
+      var w = Math.min(2400, maxW || 2400);
+      var url = master ? sizedUrl(master, w) : (img.currentSrc || img.src);
+      cache[id] = url;
+      return url;
+    }
+
+    function enter(cell) {
+      if (!cell || !cell.classList.contains('is-selected')) return;
+      var box = cell.querySelector('.AspectRatio');
+      var img = cell.querySelector('img');
+      if (!box || !img) return;
+
+      if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'Product__ZoomLayer';
+        layer.setAttribute('aria-hidden', 'true');
+      }
+      // Show a provisional (already-loaded) frame immediately, upgrade on load.
+      layer.style.backgroundImage = 'url("' + (img.currentSrc || img.src) + '")';
+      var url = largeFor(img);
+      if (url) {
+        var pre = new Image();
+        pre.onload = function () { layer.style.backgroundImage = 'url("' + url + '")'; };
+        pre.src = url; // loads large source only on first hover (cached after)
+      }
+      box.appendChild(layer);
+      layer.classList.add('is-active');
+      activeBox = box;
+    }
+    function move(e) {
+      if (!layer || !activeBox) return;
+      var r = activeBox.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width;
+      var y = (e.clientY - r.top) / r.height;
+      x = x < 0 ? 0 : x > 1 ? 1 : x;
+      y = y < 0 ? 0 : y > 1 ? 1 : y;
+      layer.style.backgroundPosition = (x * 100) + '% ' + (y * 100) + '%';
+    }
+    function leave() {
+      if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
+      if (layer) layer.classList.remove('is-active');
+      activeBox = null;
+    }
+
+    slideshow.addEventListener('mouseover', function (e) {
+      var cell = e.target.closest ? e.target.closest('.Product__SlideItem--image') : null;
+      if (cell) enter(cell);
+    });
+    slideshow.addEventListener('mousemove', move);
+    slideshow.addEventListener('mouseleave', leave);
+  }
+})();
+</script>

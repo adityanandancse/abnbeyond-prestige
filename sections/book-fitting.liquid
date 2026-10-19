@@ -1,0 +1,443 @@
+{%- comment -%}
+  Book a fitting — native appointment enquiry built on Shopify's {% form 'contact' %}.
+  All custom inputs are named contact[Field Name] so they arrive in the store email.
+  Progressive enhancement only: every field is usable with JS off.
+{%- endcomment -%}
+
+{%- assign tz_block_id = 'BookFitting-tz-' | append: section.id -%}
+{%- assign studio_note_id = 'BookFitting-studio-' | append: section.id -%}
+{%- assign video_note_id = 'BookFitting-video-' | append: section.id -%}
+{%- assign today = 'now' | date: '%Y-%m-%d' -%}
+
+<div class="Container" id="section-{{ section.id }}">
+  <header class="PageHeader">
+    <div class="SectionHeader SectionHeader--center">
+      {%- if section.settings.heading != blank -%}
+        <h1 class="SectionHeader__Heading Heading u-h1">{{ section.settings.heading | escape }}</h1>
+      {%- endif -%}
+      {%- if section.settings.intro != blank -%}
+        <div class="SectionHeader__Description Rte">{{ section.settings.intro }}</div>
+      {%- endif -%}
+    </div>
+  </header>
+
+  <div class="PageContent PageContent--narrow">
+    {%- if section.settings.show_whatsapp_followup and settings.whatsapp_enable -%}
+      {%- capture wa_href -%}{% render 'whatsapp-link' %}{%- endcapture -%}
+    {%- endif -%}
+
+    {%- comment -%} Success markup — reused by the server-rendered branch and the JS fallback target. {%- endcomment -%}
+    {%- capture success_html -%}
+      {%- if section.settings.success_heading != blank -%}
+        <h2 class="Heading u-h3" data-bf-success-heading tabindex="-1">{{ section.settings.success_heading | escape }}</h2>
+      {%- endif -%}
+      {%- if section.settings.success_text != blank -%}
+        {{ section.settings.success_text }}
+      {%- endif -%}
+      {%- if wa_href != blank -%}
+        <p>
+          <a href="{{ wa_href | strip }}" target="_blank" rel="noopener" class="Button Button--secondary">
+            Message us on WhatsApp
+          </a>
+        </p>
+      {%- endif -%}
+    {%- endcapture -%}
+
+    <div class="Rte">
+      {%- comment -%} form object only exists inside this block — the posted/error branch must live here. {%- endcomment -%}
+      {%- form 'contact', id: 'BookFittingForm', return_to: request.path, class: 'Form Form--spacingTight', data-book-fitting: section.id -%}
+        {%- if form.posted_successfully? -%}
+          <div class="Rte" id="BookFitting-success-{{ section.id }}" data-bf-success>{{ success_html }}</div>
+        {%- else -%}
+          {%- if form.errors -%}
+            <div class="Form__Alert Alert Alert--error" role="alert" data-bf-errors>
+              <ul class="Alert__ErrorList">
+                {%- for field in form.errors -%}
+                  {%- if field == 'form' -%}
+                    <li class="Alert__ErrorItem">{{ form.errors.messages[field] }}</li>
+                  {%- else -%}
+                    <li class="Alert__ErrorItem"><strong>{{ form.errors.translated_fields[field] }}</strong> {{ form.errors.messages[field] }}</li>
+                  {%- endif -%}
+                {%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+
+          {%- comment -%} Pre-rendered hidden success block for the JS fallback (contact_posted=true but server branch didn't render). {%- endcomment -%}
+          <div class="Rte" id="BookFitting-success-{{ section.id }}" data-bf-success hidden>{{ success_html }}</div>
+
+          <div data-bf-fields>
+          <input type="hidden" name="contact[Source]" value="Book a fitting – {{ page.url }}">
+
+          <div class="Form__Group">
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-name-{{ section.id }}">Name</label>
+              <input type="text" class="Form__Input" id="BookFitting-name-{{ section.id }}" name="contact[Name]" required {% if customer %}value="{{ customer.name }}"{% endif %}>
+            </div>
+
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-whatsapp-{{ section.id }}">WhatsApp number</label>
+              <input type="tel" class="Form__Input" id="BookFitting-whatsapp-{{ section.id }}" name="contact[WhatsApp number]" required aria-describedby="BookFitting-whatsapp-help-{{ section.id }}" autocomplete="tel">
+              <span class="Form__ItemHelp" id="BookFitting-whatsapp-help-{{ section.id }}">Include country code</span>
+            </div>
+          </div>
+
+          <div class="Form__Group">
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-email-{{ section.id }}">Email</label>
+              <input type="email" class="Form__Input" id="BookFitting-email-{{ section.id }}" name="contact[email]" required autocomplete="email" value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}">
+            </div>
+
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-location-{{ section.id }}">City &amp; country</label>
+              <input type="text" class="Form__Input" id="BookFitting-location-{{ section.id }}" name="contact[City & country]" required>
+            </div>
+          </div>
+
+          <fieldset class="Form__Item BookFitting__Fieldset" data-appointment-type>
+            <legend class="Form__Label">Appointment type</legend>
+            <div class="BookFitting__Options">
+              <label class="BookFitting__Option">
+                <input type="radio" name="contact[Appointment type]" value="Visit the atelier" required>
+                <span>Visit the atelier</span>
+              </label>
+              <label class="BookFitting__Option">
+                <input type="radio" name="contact[Appointment type]" value="Video consultation" data-appointment-video required>
+                <span>Video consultation</span>
+              </label>
+              <label class="BookFitting__Option">
+                <input type="radio" name="contact[Appointment type]" value="Measurements at home (enquire)" required>
+                <span>Measurements at home (enquire)</span>
+              </label>
+            </div>
+          </fieldset>
+
+          {%- if section.settings.studio_label != blank or section.settings.studio_note != blank -%}
+            <div class="BookFitting__Note Rte" id="{{ studio_note_id }}" data-note="studio">
+              {%- if section.settings.studio_label != blank -%}
+                <p class="Form__Label">{{ section.settings.studio_label | escape }}</p>
+              {%- endif -%}
+              {{ section.settings.studio_note }}
+            </div>
+          {%- endif -%}
+
+          {%- if section.settings.video_note != blank -%}
+            <div class="BookFitting__Note Rte" id="{{ video_note_id }}" data-note="video">
+              {{ section.settings.video_note }}
+            </div>
+          {%- endif -%}
+
+          <fieldset class="Form__Item BookFitting__Fieldset">
+            <legend class="Form__Label">For</legend>
+            <div class="BookFitting__Options">
+              <label class="BookFitting__Option">
+                <input type="radio" name="contact[For]" value="Menswear">
+                <span>Menswear</span>
+              </label>
+              <label class="BookFitting__Option">
+                <input type="radio" name="contact[For]" value="Womenswear">
+                <span>Womenswear</span>
+              </label>
+              <label class="BookFitting__Option">
+                <input type="radio" name="contact[For]" value="Both">
+                <span>Both</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="Form__Group">
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-date-{{ section.id }}">Preferred date</label>
+              <input type="date" class="Form__Input" id="BookFitting-date-{{ section.id }}" name="contact[Preferred date]" min="{{ today }}" data-min-today>
+            </div>
+
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-time-{{ section.id }}">Preferred time</label>
+              <div class="Form__Select Select Select--primary">
+                {%- include 'icon' with 'select-arrow' -%}
+                <select id="BookFitting-time-{{ section.id }}" name="contact[Preferred time]">
+                  <option value="Morning">Morning</option>
+                  <option value="Afternoon">Afternoon</option>
+                  <option value="Evening">Evening</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="Form__Item" id="{{ tz_block_id }}" data-timezone>
+            <label class="Form__Label" for="BookFitting-tz-select-{{ section.id }}">Time zone</label>
+            <div class="Form__Select Select Select--primary">
+              {%- include 'icon' with 'select-arrow' -%}
+              <select id="BookFitting-tz-select-{{ section.id }}" name="contact[Time zone]" aria-describedby="BookFitting-tz-help-{{ section.id }}">
+                <option value="Asia/Kolkata" selected>India (Asia/Kolkata)</option>
+                <option value="Asia/Dubai">Dubai (Asia/Dubai)</option>
+                <option value="Europe/London">London (Europe/London)</option>
+                <option value="America/New_York">New York (America/New_York)</option>
+                <option value="America/Los_Angeles">Los Angeles (America/Los_Angeles)</option>
+                <option value="Asia/Tokyo">Tokyo (Asia/Tokyo)</option>
+                <option value="Europe/Rome">Rome (Europe/Rome)</option>
+              </select>
+            </div>
+            <span class="Form__ItemHelp" id="BookFitting-tz-help-{{ section.id }}">For video consultations</span>
+          </div>
+
+          <div class="Form__Group">
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-occasion-{{ section.id }}">Occasion</label>
+              <div class="Form__Select Select Select--primary">
+                {%- include 'icon' with 'select-arrow' -%}
+                <select id="BookFitting-occasion-{{ section.id }}" name="contact[Occasion]">
+                  <option value="Own wedding">Own wedding</option>
+                  <option value="Family wedding">Family wedding</option>
+                  <option value="Festive">Festive</option>
+                  <option value="Everyday">Everyday</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="Form__Item">
+              <label class="Form__Label" for="BookFitting-event-{{ section.id }}">Event date <span class="BookFitting__Optional">(optional)</span></label>
+              <input type="date" class="Form__Input" id="BookFitting-event-{{ section.id }}" name="contact[Event date]" min="{{ today }}" data-min-today>
+            </div>
+          </div>
+
+          <div class="Form__Item">
+            <label class="Form__Label" for="BookFitting-body-{{ section.id }}">What are you considering? <span class="BookFitting__Optional">(optional)</span></label>
+            <textarea class="Form__Textarea" id="BookFitting-body-{{ section.id }}" name="contact[body]" rows="5">{% if form.body %}{{ form.body }}{% endif %}</textarea>
+          </div>
+
+          <div class="Form__Item">
+            <label class="Form__Label" for="BookFitting-client-{{ section.id }}">Existing client? Phone or reference <span class="BookFitting__Optional">(optional)</span></label>
+            <input type="text" class="Form__Input" id="BookFitting-client-{{ section.id }}" name="contact[Existing client]">
+          </div>
+
+          <button type="submit" class="Form__Submit Button Button--primary Button--full">Request a fitting</button>
+          </div>
+        {%- endif -%}
+      {%- endform -%}
+    </div>
+  </div>
+</div>
+
+<style>
+  #section-{{ section.id }} .BookFitting__Fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0 0 15px;
+  }
+
+  #section-{{ section.id }} .BookFitting__Fieldset legend {
+    padding: 0;
+    margin-bottom: 8px;
+  }
+
+  #section-{{ section.id }} .BookFitting__Options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+  }
+
+  #section-{{ section.id }} .BookFitting__Option {
+    display: inline-flex;
+    align-items: baseline;
+    cursor: pointer;
+  }
+
+  #section-{{ section.id }} .BookFitting__Option input {
+    margin-right: 10px;
+  }
+
+  #section-{{ section.id }} .BookFitting__Option input:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+
+  #section-{{ section.id }} .BookFitting__Note {
+    margin: 0 0 15px;
+    padding: 16px 18px;
+    border: 1px solid {{ settings.border_color | default: '#e8e8e8' }};
+  }
+
+  #section-{{ section.id }} .BookFitting__Optional {
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.6;
+  }
+</style>
+
+<script>
+  (function () {
+    var STORAGE_KEY = 'book-fitting-{{ section.id }}';
+
+    var form = document.querySelector('[data-book-fitting="{{ section.id }}"]');
+    if (!form) return;
+
+    // Success / error state is read from the DOM + URL (the form object does not
+    // exist in this script's scope, so Liquid form.* checks can't be used here).
+    var successEl = form.querySelector('[data-bf-success]');
+    var fieldsEl = form.querySelector('[data-bf-fields]');
+    var postedUrl = /[?&]contact_posted=true/.test(window.location.search);
+    var isSuccess = !!(successEl && (!successEl.hasAttribute('hidden') || postedUrl));
+
+    if (isSuccess) {
+      // Clear the preserved field cache and reveal the success state.
+      try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      if (successEl.hasAttribute('hidden')) successEl.removeAttribute('hidden');
+      if (fieldsEl) fieldsEl.hidden = true;
+
+      var heading = successEl.querySelector('[data-bf-success-heading]') || successEl;
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      try { successEl.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' }); }
+      catch (e) { successEl.scrollIntoView(); }
+      if (heading && heading.focus) heading.focus();
+      return;
+    }
+
+    var hasErrors = !!form.querySelector('[data-bf-errors]');
+
+    // 1. Minimum date = today (local), for every date input.
+    var today = new Date();
+    var yyyy = today.getFullYear();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var dd = String(today.getDate()).padStart(2, '0');
+    var localToday = yyyy + '-' + mm + '-' + dd;
+    form.querySelectorAll('[data-min-today]').forEach(function (el) {
+      el.min = localToday;
+    });
+
+    // 2. Show studio / video notes and time zone based on appointment type.
+    var tzBlock = form.querySelector('[data-timezone]');
+    var studioNote = form.querySelector('[data-note="studio"]');
+    var videoNote = form.querySelector('[data-note="video"]');
+    var radios = form.querySelectorAll('input[name="contact[Appointment type]"]');
+
+    function sync() {
+      var value = '';
+      radios.forEach(function (r) { if (r.checked) value = r.value; });
+      var isVideo = value === 'Video consultation';
+      var isStudio = value === 'Visit the atelier';
+      if (tzBlock) tzBlock.hidden = !isVideo;
+      if (videoNote) videoNote.hidden = !isVideo;
+      if (studioNote) studioNote.hidden = !isStudio;
+    }
+    radios.forEach(function (r) { r.addEventListener('change', sync); });
+
+    // 3. Preserve entered values across the error reload (native form has no echo
+    //    for custom fields). Save on input, restore on load, clear on submit-success.
+    function fields() {
+      return form.querySelectorAll('input, select, textarea');
+    }
+
+    function save() {
+      var data = {};
+      fields().forEach(function (el) {
+        if (!el.name || el.type === 'hidden') return;
+        if (el.type === 'radio') {
+          if (el.checked) data[el.name] = el.value;
+        } else {
+          data[el.name] = el.value;
+        }
+      });
+      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+
+    if (hasErrors) {
+      try {
+        var saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
+        fields().forEach(function (el) {
+          if (!el.name || !(el.name in saved)) return;
+          if (el.type === 'radio') {
+            el.checked = (el.value === saved[el.name]);
+          } else if (!el.value) {
+            el.value = saved[el.name];
+          }
+        });
+        // Values are back in the fields — drop the stored copy right away.
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+    }
+
+    form.addEventListener('input', save);
+    form.addEventListener('change', save);
+
+    // 4. On error, focus the first invalid / empty required field.
+    if (hasErrors) {
+      var firstInvalid = null;
+      form.querySelectorAll('[required]').forEach(function (el) {
+        if (firstInvalid) return;
+        var ok = el.type === 'radio'
+          ? form.querySelector('input[name="' + el.name.replace(/"/g, '\\"') + '"]:checked')
+          : el.value.trim();
+        if (!ok) firstInvalid = el;
+      });
+      (firstInvalid || form.querySelector('input, select, textarea')).focus();
+    }
+
+    sync();
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Book a fitting",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Book a fitting"
+    },
+    {
+      "type": "richtext",
+      "id": "intro",
+      "label": "Intro",
+      "default": "<p>Tell us a little about what you have in mind and we will arrange a fitting with the atelier.</p>"
+    },
+    {
+      "type": "text",
+      "id": "studio_label",
+      "label": "Studio label",
+      "default": "Visit the atelier"
+    },
+    {
+      "type": "richtext",
+      "id": "studio_note",
+      "label": "Studio note",
+      "info": "Address and opening hours. Shown when 'Visit the atelier' is chosen.",
+      "default": "<p>By appointment, Monday to Saturday. Address and directions will be confirmed by email.</p>"
+    },
+    {
+      "type": "richtext",
+      "id": "video_note",
+      "label": "Video consultation note",
+      "info": "Shown when 'Video consultation' is chosen.",
+      "default": "<p>We will send a video call link. Please choose your time zone below.</p>"
+    },
+    {
+      "type": "text",
+      "id": "success_heading",
+      "label": "Success heading",
+      "default": "Thank you — your request is in"
+    },
+    {
+      "type": "richtext",
+      "id": "success_text",
+      "label": "Success text",
+      "default": "<p>Our atelier will be in touch shortly to confirm your fitting.</p>"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_whatsapp_followup",
+      "label": "Show WhatsApp follow-up button on success",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "category": "Page",
+      "name": "Book a fitting"
+    }
+  ]
+}
+{% endschema %}

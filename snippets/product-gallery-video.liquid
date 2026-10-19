@@ -1,0 +1,41 @@
+{%- comment -%}
+  One native Shopify-hosted video cell for the product gallery carousel.
+  Expects: media (a product media of media_type 'video'), product (for alt fallback).
+  Behaviour (muted/loop/playsinline, autoplay-in-view, play/pause) is wired by
+  snippets/product-gallery-enhancements.liquid. Poster is the media preview image.
+{%- endcomment -%}
+
+{%- assign poster = media.preview_image -%}
+{%- assign video_alt = media.alt | default: product.title -%}
+
+<div id="Media{{ media.id }}"
+     class="Product__SlideItem Product__SlideItem--video Carousel__Cell"
+     data-image-position="{% increment image_position %}"
+     data-media-id="{{ media.id }}"
+     data-product-video>
+  <div class="AspectRatio AspectRatio--withFallback"
+       style="padding-bottom: {{ 100.0 | divided_by: media.aspect_ratio }}%; --aspect-ratio: {{ media.aspect_ratio }};">
+    <video class="Product__Video"
+           data-product-video-el
+           muted loop playsinline preload="none"
+           {% if poster %}poster="{{ poster | img_url: '1200x' }}" width="{{ poster.width }}" height="{{ poster.height }}"{% endif %}
+           aria-label="{{ video_alt | escape }}">
+      {%- comment -%}mp4 first for widest support, then any other formats.{%- endcomment -%}
+      {%- for source in media.sources -%}
+        {%- if source.format == 'mp4' -%}
+          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+        {%- endif -%}
+      {%- endfor -%}
+      {%- for source in media.sources -%}
+        {%- unless source.format == 'mp4' -%}
+          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+        {%- endunless -%}
+      {%- endfor -%}
+    </video>
+
+    <button type="button" class="Product__VideoToggle" data-product-video-toggle aria-pressed="false">
+      <span class="Product__VideoToggleIcon" aria-hidden="true"></span>
+      <span class="u-visually-hidden" data-product-video-label>Play video</span>
+    </button>
+  </div>
+</div>

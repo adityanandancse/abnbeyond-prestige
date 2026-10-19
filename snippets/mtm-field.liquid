@@ -1,0 +1,14 @@
+{%- comment -%}
+  One measurement field. Included (shared scope) from custom-size.liquid.
+  Expects: key, flabel, sheet, uid, guide_url
+  Keys are output verbatim on data-key for the _mm JSON / AB Measure.
+{%- endcomment -%}
+{%- assign f_label = flabel | strip -%}
+{%- assign f_id = 'mtm-' | append: sheet | append: '-' | append: key | append: '-' | append: uid -%}
+<div class="MtM__Field">
+  <label class="Form__Label" for="{{ f_id }}">{{ f_label | escape }}{%- if guide_url != blank -%}<a class="MtM__Guide" href="{{ guide_url }}#{{ sheet }}-{{ key }}" target="_blank" rel="noopener">How to measure</a>{%- endif -%}</label>
+  <input type="number" class="Form__Input MtM__Input" id="{{ f_id }}" name="properties[{{ f_label | escape }}]"
+         data-key="{{ key }}" data-measure-input step="0.25" min="1" max="100" inputmode="decimal"
+         aria-describedby="mtm-unit-note-{{ uid }}" disabled>
+  <p class="MtM__Error" data-error hidden></p>
+</div>

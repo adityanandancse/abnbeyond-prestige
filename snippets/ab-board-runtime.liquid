@@ -1,0 +1,18 @@
+{%- comment -%}
+  Board runtime — included once from layout/theme.liquid on product, collection
+  and board pages. Prints the function labels (from theme settings) for the JS
+  module and loads it with defer. CSS lives in assets/ab-design.css.
+{%- endcomment -%}
+<script id="ab-board-config" type="application/json">
+{
+  "functions": {
+    "mehendi": {{ settings.board_label_mehendi | default: 'Mehendi' | json }},
+    "haldi": {{ settings.board_label_haldi | default: 'Haldi' | json }},
+    "sangeet": {{ settings.board_label_sangeet | default: 'Sangeet' | json }},
+    "wedding": {{ settings.board_label_wedding | default: 'Wedding' | json }},
+    "reception": {{ settings.board_label_reception | default: 'Reception' | json }},
+    "other": {{ settings.board_label_other | default: 'Other' | json }}
+  }
+}
+</script>
+<script src="{{ 'ab-board.js' | asset_url }}" defer></script>

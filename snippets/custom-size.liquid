@@ -1,0 +1,648 @@
+{%- comment -%}
+  ============================================================================
+  Custom size (made-to-measure) — drawer edition.
+  Rendered only when mtm_show is true (see product-form.liquid). It outputs:
+    - a one-line summary that sits under the size row (hidden until saved)
+    - a right-side / bottom-sheet drawer holding the 2b form UI
+    - the hidden "_" line-item properties
+  All inputs live inside {% form 'product' %} (the drawer is position:fixed, so
+  its DOM position does not affect layout) and default to disabled: JS enables
+  them only while editing or once measurements are saved, so a standard-size
+  add-to-cart never submits any custom property.
+  Field keys & labels come from snippets/mtm-fields.liquid (single source).
+  ============================================================================
+{%- endcomment -%}
+
+{%- include 'mtm-fields' -%}
+
+{%- assign men_tag   = settings.men_tag   | default: 'men' -%}
+{%- assign women_tag = settings.women_tag | default: 'women' -%}
+{%- assign guide_url = settings.guide_url -%}
+{%- assign uid = product.id | append: '-' | append: section.id -%}
+{%- assign ptype = product.type | downcase | strip -%}
+
+{%- assign show_gender_radio = false -%}
+{%- if women_tag != blank and product.tags contains women_tag -%}
+  {%- assign mtm_sheets = 'she' -%}
+{%- elsif men_tag != blank and product.tags contains men_tag -%}
+  {%- assign mtm_sheets = 'he' -%}
+{%- else -%}
+  {%- assign mtm_sheets = 'he,she' -%}
+  {%- assign show_gender_radio = true -%}
+{%- endif -%}
+{%- assign mtm_sheets = mtm_sheets | split: ',' -%}
+
+{%- capture wa_product_href -%}{% render 'whatsapp-link', product: product %}{%- endcapture -%}
+
+<div class="MtM" data-mtm data-guide="{{ guide_url | escape }}" data-custom-variant="{{ mtm_custom_variant_id }}">
+
+  {%- comment -%} ---- Summary (under the size row, shown once saved) ---- {%- endcomment -%}
+  <p class="MtM__Summary Text--subdued" data-mtm-summary hidden></p>
+
+  {%- comment -%} ---- Drawer ---- {%- endcomment -%}
+  <div class="MtM__Drawer" id="mtm-drawer-{{ uid }}" data-mtm-drawer
+       role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mtm-drawer-title-{{ uid }}">
+    <div class="Drawer__Header Drawer__Header--bordered Drawer__Container">
+      <span class="Drawer__Title Heading u-h4" id="mtm-drawer-title-{{ uid }}">Your measurements</span>
+      <button type="button" class="Drawer__Close Icon-Wrapper--clickable" data-mtm-close aria-label="Close">
+        {%- include 'icon' with 'close' -%}
+      </button>
+    </div>
+
+      <div class="MtM__Body">
+        <div class="Drawer__Container">
+
+          <fieldset class="MtM__Fieldset MtM__ModeFieldset">
+            <legend class="CustomSize__Legend">How would you like to size this?</legend>
+            <div class="CustomSize__Options MtM__Options--3" role="radiogroup" aria-label="Sizing option">
+              <label class="CustomSize__Option">
+                <input type="radio" name="mtm-mode-{{ uid }}" value="measure" checked data-mode>
+                <span class="CustomSize__OptionInner">Enter my measurements</span>
+              </label>
+              <label class="CustomSize__Option">
+                <input type="radio" name="mtm-mode-{{ uid }}" value="existing" data-mode>
+                <span class="CustomSize__OptionInner">I&rsquo;m an existing client</span>
+              </label>
+              <label class="CustomSize__Option">
+                <input type="radio" name="mtm-mode-{{ uid }}" value="book" data-mode>
+                <span class="CustomSize__OptionInner">Book a fitting instead</span>
+              </label>
+            </div>
+          </fieldset>
+
+          {%- comment -%} ---- Mode: measure ---- {%- endcomment -%}
+          <div class="MtM__Panel" data-panel="measure">
+            {%- if show_gender_radio -%}
+              <fieldset class="MtM__Fieldset">
+                <legend class="CustomSize__Legend">Collection</legend>
+                <div class="CustomSize__Options" role="radiogroup" aria-label="Collection">
+                  <label class="CustomSize__Option">
+                    <input type="radio" name="mtm-sheet-{{ uid }}" value="he" checked data-sheet-choice>
+                    <span class="CustomSize__OptionInner">Menswear</span>
+                  </label>
+                  <label class="CustomSize__Option">
+                    <input type="radio" name="mtm-sheet-{{ uid }}" value="she" data-sheet-choice>
+                    <span class="CustomSize__OptionInner">Womenswear</span>
+                  </label>
+                </div>
+              </fieldset>
+            {%- endif -%}
+
+            <div class="MtM__UnitRow">
+              <span class="CustomSize__Legend" id="mtm-unit-label-{{ uid }}">Units</span>
+              <div class="CustomSize__Options MtM__Options--unit" role="radiogroup" aria-labelledby="mtm-unit-label-{{ uid }}">
+                <label class="CustomSize__Option">
+                  <input type="radio" name="mtm-unit-{{ uid }}" value="in" checked data-unit>
+                  <span class="CustomSize__OptionInner">inches</span>
+                </label>
+                <label class="CustomSize__Option">
+                  <input type="radio" name="mtm-unit-{{ uid }}" value="cm" data-unit>
+                  <span class="CustomSize__OptionInner">cm</span>
+                </label>
+              </div>
+              <p class="MtM__UnitNote Text--subdued" id="mtm-unit-note-{{ uid }}" data-unit-note>Enter measurements in inches.</p>
+            </div>
+
+            {%- for sheet in mtm_sheets -%}
+              {%- if sheet == 'he' -%}
+                {%- assign sheet_lines = mtm_he | split: '
+' -%}
+              {%- else -%}
+                {%- assign sheet_lines = mtm_she | split: '
+' -%}
+              {%- endif -%}
+
+              {%- assign garment_token = '' -%}
+              {%- assign matched = false -%}
+              {%- assign garment_lines = mtm_garments | split: '
+' -%}
+              {%- for gl in garment_lines -%}
+                {%- assign gparts = gl | strip | split: '|' -%}
+                {%- if gparts.size < 4 -%}{%- continue -%}{%- endif -%}
+                {%- assign gsheet = gparts[0] | strip -%}
+                {%- assign ggarment = gparts[1] | strip | downcase -%}
+                {%- if gsheet == sheet and ggarment == ptype -%}
+                  {%- assign matched = true -%}
+                  {%- assign garment_token = ggarment -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+              <div class="MtM__Sheet" data-sheet="{{ sheet }}" data-garment="{{ garment_token | escape }}" {% if show_gender_radio and sheet != 'he' %}hidden{% endif %}>
+                {%- for gl in garment_lines -%}
+                  {%- assign gparts = gl | strip | split: '|' -%}
+                  {%- if gparts.size < 4 -%}{%- continue -%}{%- endif -%}
+                  {%- assign gsheet = gparts[0] | strip -%}
+                  {%- assign ggarment = gparts[1] | strip | downcase -%}
+                  {%- unless gsheet == sheet and ggarment == ptype -%}{%- continue -%}{%- endunless -%}
+                  {%- assign gname = gparts[2] | strip -%}
+                  {%- assign gkeys = gparts[3] | strip | split: ',' -%}
+
+                  <fieldset class="MtM__Fieldset MtM__Group">
+                    <legend class="MtM__GroupLegend">{{ gname | escape }}</legend>
+                    <div class="MtM__Fields">
+                      {%- for key in gkeys -%}
+                        {%- assign key = key | strip -%}
+                        {%- assign flabel = '' -%}
+                        {%- for line in sheet_lines -%}
+                          {%- assign fparts = line | strip | split: '|' -%}
+                          {%- if fparts[0] == key -%}{%- assign flabel = fparts[1] -%}{%- break -%}{%- endif -%}
+                        {%- endfor -%}
+                        {%- if flabel == '' -%}{%- continue -%}{%- endif -%}
+                        {%- include 'mtm-field' -%}
+                      {%- endfor -%}
+                    </div>
+                  </fieldset>
+                {%- endfor -%}
+
+                {%- unless matched -%}
+                  {%- assign sections_seen = '' -%}
+                  {%- for line in sheet_lines -%}
+                    {%- assign lparts = line | strip | split: '|' -%}
+                    {%- if lparts.size < 3 -%}{%- continue -%}{%- endif -%}
+                    {%- assign sname = lparts[2] | strip -%}
+                    {%- unless sections_seen contains sname -%}
+                      {%- assign sections_seen = sections_seen | append: sname | append: '||' -%}
+                    {%- endunless -%}
+                  {%- endfor -%}
+                  {%- assign section_list = sections_seen | split: '||' -%}
+
+                  {%- for sname in section_list -%}
+                    <fieldset class="MtM__Fieldset MtM__Group">
+                      <legend class="MtM__GroupLegend">{{ sname | escape }}</legend>
+                      <div class="MtM__Fields">
+                        {%- for line in sheet_lines -%}
+                          {%- assign fparts = line | strip | split: '|' -%}
+                          {%- if fparts.size < 3 -%}{%- continue -%}{%- endif -%}
+                          {%- assign fsection = fparts[2] | strip -%}
+                          {%- unless fsection == sname -%}{%- continue -%}{%- endunless -%}
+                          {%- assign key = fparts[0] | strip -%}
+                          {%- assign flabel = fparts[1] -%}
+                          {%- include 'mtm-field' -%}
+                        {%- endfor -%}
+                      </div>
+                    </fieldset>
+                  {%- endfor -%}
+                {%- endunless -%}
+              </div>
+            {%- endfor -%}
+
+            <fieldset class="MtM__Fieldset MtM__Group">
+              <legend class="MtM__GroupLegend">Additional details</legend>
+              <div class="MtM__Fields">
+                <div class="MtM__Field">
+                  <label class="Form__Label" for="mtm-height-{{ uid }}">Height</label>
+                  <input type="text" class="Form__Input MtM__Text" id="mtm-height-{{ uid }}" name="properties[Height]"
+                         data-measure-field disabled aria-describedby="mtm-height-help-{{ uid }}">
+                  <p class="MtM__Help Text--subdued" id="mtm-height-help-{{ uid }}">Optional. e.g. 5ft 9in or 175 cm.</p>
+                </div>
+              </div>
+
+              <fieldset class="MtM__Fieldset MtM__FitFieldset">
+                <legend class="Form__Label">Fit preference</legend>
+                <div class="CustomSize__Options MtM__Options--3" role="radiogroup" aria-label="Fit preference">
+                  <label class="CustomSize__Option">
+                    <input type="radio" name="properties[Fit]" value="Slim" data-measure-field disabled>
+                    <span class="CustomSize__OptionInner">Slim</span>
+                  </label>
+                  <label class="CustomSize__Option">
+                    <input type="radio" name="properties[Fit]" value="Regular" data-measure-field disabled>
+                    <span class="CustomSize__OptionInner">Regular</span>
+                  </label>
+                  <label class="CustomSize__Option">
+                    <input type="radio" name="properties[Fit]" value="Relaxed" data-measure-field disabled>
+                    <span class="CustomSize__OptionInner">Relaxed</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="MtM__Field MtM__Field--full">
+                <label class="Form__Label" for="mtm-notes-{{ uid }}">Notes</label>
+                <textarea class="Form__Textarea" id="mtm-notes-{{ uid }}" name="properties[Measurement notes]" rows="3"
+                          data-measure-field disabled aria-describedby="mtm-notes-help-{{ uid }}"></textarea>
+                <p class="MtM__Help Text--subdued" id="mtm-notes-help-{{ uid }}">Anything the atelier should know. Optional.</p>
+              </div>
+            </fieldset>
+          </div>
+
+          {%- comment -%} ---- Mode: existing client ---- {%- endcomment -%}
+          <div class="MtM__Panel" data-panel="existing" hidden>
+            <div class="MtM__Field MtM__Field--full">
+              <label class="Form__Label" for="mtm-existing-{{ uid }}">Phone or client reference</label>
+              <input type="text" class="Form__Input" id="mtm-existing-{{ uid }}" name="properties[Existing client]"
+                     data-existing-field disabled aria-describedby="mtm-existing-help-{{ uid }}">
+              <p class="MtM__Help Text--subdued" id="mtm-existing-help-{{ uid }}">We&rsquo;ll match this to your measurements on file.</p>
+              <p class="MtM__Error" data-existing-error hidden>Please enter a phone number or client reference.</p>
+            </div>
+          </div>
+
+          {%- comment -%} ---- Mode: book a fitting ---- {%- endcomment -%}
+          <div class="MtM__Panel" data-panel="book" hidden>
+            <p class="MtM__Help">Prefer to be measured? Book a fitting and we&rsquo;ll take it from there &mdash; you can still add this piece to your bag.</p>
+            <div class="MtM__BookActions">
+              <a class="Button Button--secondary" href="/pages/book-fitting">Book a fitting</a>
+              <a class="Button Button--secondary" href="{{ wa_product_href | strip }}" target="_blank" rel="noopener">Message us on WhatsApp</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="Drawer__Footer Drawer__Footer--padded MtM__Footer">
+        <button type="button" class="Button Button--secondary" data-mtm-cancel>Cancel</button>
+        <button type="button" class="Button Button--primary" data-mtm-save>Save measurements</button>
+      </div>
+  </div>
+
+  <div class="MtM__Overlay" data-mtm-overlay hidden></div>
+
+  {%- comment -%} ---- Hidden line-item properties (all "_" → hidden in cart/order). Disabled until saved. ---- {%- endcomment -%}
+  <input type="hidden" name="properties[_Custom Size]" value="Yes" data-flag disabled>
+  <input type="hidden" name="properties[_mm_sheet]" value="{{ mtm_sheets[0] }}" data-hidden-sheet disabled>
+  <input type="hidden" name="properties[_mm_unit]" value="in" data-hidden-unit disabled>
+  <input type="hidden" name="properties[_mm]" value="" data-hidden-json disabled>
+</div>
+
+<style>
+  [data-mtm] { display: block; }
+  [data-mtm] .MtM__Summary { margin: 12px 0 0; font-size: 13px; }
+  [data-mtm] .MtM__Summary button {
+    background: none; border: 0; padding: 0; margin-left: 6px;
+    font: inherit; color: inherit; text-decoration: underline; cursor: pointer;
+  }
+
+  [data-mtm] .MtM__Fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+  [data-mtm] .MtM__ModeFieldset legend,
+  [data-mtm] .MtM__UnitRow .CustomSize__Legend { margin-bottom: 8px; }
+  [data-mtm] .MtM__Options--3 { grid-template-columns: 1fr 1fr 1fr; }
+  [data-mtm] .MtM__Options--unit { display: inline-grid; grid-template-columns: 1fr 1fr; min-width: 160px; }
+  [data-mtm] .MtM__UnitRow { margin: 0 0 18px; }
+  [data-mtm] .MtM__UnitNote,
+  [data-mtm] .MtM__Help { margin: 6px 0 0; font-size: 12px; }
+  [data-mtm] .MtM__GroupLegend {
+    display: block; font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #3A3A38; margin-bottom: 10px;
+  }
+  [data-mtm] .MtM__Fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 20px; }
+  [data-mtm] .MtM__Field--full { grid-column: 1 / -1; }
+  [data-mtm] .MtM__Field .Form__Label { margin-bottom: 4px; }
+  [data-mtm] .MtM__Guide { margin-left: 8px; font-size: 11px; letter-spacing: 0; text-transform: none; text-decoration: underline; }
+  [data-mtm] .MtM__Error { margin: 4px 0 0; font-size: 12px; color: #B5423B; }
+  [data-mtm] .MtM__Field--invalid .Form__Input { border-color: #B5423B; }
+  [data-mtm] .Form__Input:focus-visible,
+  [data-mtm] .Form__Textarea:focus-visible { outline: 2px solid #141414; outline-offset: 2px; }
+  [data-mtm] .MtM__FitFieldset { margin-top: 14px; }
+  [data-mtm] .MtM__BookActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  [data-mtm] .MtM__BookActions .Button { flex: 1 1 auto; }
+
+  /* Custom-size tile matches the theme's size tiles (styled via .SizeTile). */
+  .SizeTile--custom[aria-pressed="true"] { }
+
+  /* Drawer: our own element (NOT the theme's .Drawer, so the theme's drawer JS
+     never manages it). Right side on desktop, bottom sheet on mobile. Flex column
+     so the body scrolls while header and footer stay put. */
+  .MtM__Drawer {
+    position: fixed; top: 0; right: 0; left: auto;
+    display: -webkit-box; display: -ms-flexbox; display: flex;
+    -webkit-box-orient: vertical; -webkit-box-direction: normal;
+    -ms-flex-direction: column; flex-direction: column;
+    width: 460px; max-width: 100vw; height: 100%;
+    background: {{ settings.background }};
+    box-shadow: -2px 0 20px rgba(0, 0, 0, 0.18);
+    overflow: hidden; z-index: 1001;
+    visibility: hidden;
+    -webkit-transform: translateX(100%); transform: translateX(100%);
+    -webkit-transition: -webkit-transform 0.4s cubic-bezier(0.645, 0.045, 0.355, 1), visibility 0.4s;
+    transition: transform 0.4s cubic-bezier(0.645, 0.045, 0.355, 1), visibility 0.4s;
+  }
+  .MtM__Drawer[aria-hidden="false"] {
+    visibility: visible;
+    -webkit-transform: translateX(0); transform: translateX(0);
+  }
+  /* Restore the bits the dropped .Drawer--fromRight used to provide. */
+  .MtM__Drawer .Drawer__Container { padding-left: 24px; padding-right: 18px; }
+  .MtM__Drawer .Drawer__Close { right: 18px; left: auto; }
+  .MtM__Drawer .Drawer__Header { -ms-flex: none; flex: none; }
+  .MtM__Body {
+    -webkit-box-flex: 1; -ms-flex: 1 1 auto; flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  .MtM__Footer {
+    -ms-flex: none; flex: none;
+    display: -webkit-box; display: -ms-flexbox; display: flex;
+    gap: 12px;
+  }
+  .MtM__Footer .Button { -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+  .MtM__Overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(20, 20, 20, 0.5);
+    opacity: 0; transition: opacity 0.4s ease;
+  }
+  .MtM__Overlay.is-visible { opacity: 1; }
+
+  @media (max-width: 767px) {
+    .MtM__Drawer {
+      width: 100%; max-width: none;
+      height: 85vh;   /* definite height fallback for browsers without dvh */
+      height: 85dvh;
+      max-height: none;
+      top: auto; bottom: 0; right: 0; left: 0;
+      -webkit-transform: translateY(100%); transform: translateY(100%);
+    }
+    .MtM__Drawer[aria-hidden="false"] { -webkit-transform: translateY(0); transform: translateY(0); }
+    .MtM__Footer { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+    [data-mtm] .MtM__Fields { grid-template-columns: 1fr; }
+    [data-mtm] .MtM__Options--3 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+(function () {
+  var root = document.currentScript ? document.currentScript.previousElementSibling : null;
+  while (root && !(root.hasAttribute && root.hasAttribute('data-mtm'))) { root = root.previousElementSibling; }
+  if (!root) root = document.querySelector('[data-mtm]');
+  if (!root) return;
+
+  var form = root.closest('form[action*="/cart/add"]');
+  if (!form) return;
+  // We validate measurements ourselves; stop the browser rejecting step/min/max on submit.
+  form.setAttribute('novalidate', 'novalidate');
+
+  var UNIT_KEY = 'ab_mm_unit';
+
+  var drawer      = root.querySelector('[data-mtm-drawer]');
+  var overlay     = root.querySelector('[data-mtm-overlay]');
+  var summary     = root.querySelector('[data-mtm-summary]');
+  var tile        = form.querySelector('[data-mtm-tile]');
+  var stdTiles    = form.querySelectorAll('[data-size-tile]');
+  var idControl   = form.querySelector('select[name="id"], input[name="id"]');
+  var customVariantId = root.getAttribute('data-custom-variant') || '';
+
+  var modeRadios  = root.querySelectorAll('[data-mode]');
+  var sheetRadios = root.querySelectorAll('[data-sheet-choice]');
+  var unitRadios  = root.querySelectorAll('[data-unit]');
+  var unitNote    = root.querySelector('[data-unit-note]');
+  var panels      = root.querySelectorAll('[data-panel]');
+  var sheets      = root.querySelectorAll('[data-sheet]');
+  var existing    = root.querySelector('[data-existing-field]');
+  var existingErr = root.querySelector('[data-existing-error]');
+  var flag        = root.querySelector('[data-flag]');
+  var hiddenSheet = root.querySelector('[data-hidden-sheet]');
+  var hiddenUnit  = root.querySelector('[data-hidden-unit]');
+  var hiddenJson  = root.querySelector('[data-hidden-json]');
+
+  var drawerOpen = false, customActive = false, customSaved = false;
+  var prevTile = null, overrideInput = null, lastFocus = null;
+
+  function current(radios) {
+    for (var i = 0; i < radios.length; i++) { if (radios[i].checked) return radios[i].value; }
+    return radios.length ? radios[0].value : '';
+  }
+  function activeSheetEl() {
+    if (sheets.length === 1) return sheets[0];
+    var want = current(sheetRadios) || 'he';
+    for (var i = 0; i < sheets.length; i++) { if (sheets[i].getAttribute('data-sheet') === want) return sheets[i]; }
+    return sheets[0];
+  }
+  function maxForUnit(unit) { return unit === 'cm' ? 250 : 100; }
+
+  // ---- variant override ----------------------------------------------------
+  function applyCustomVariant() {
+    if (!idControl || !customVariantId) return;
+    if (!overrideInput) {
+      overrideInput = document.createElement('input');
+      overrideInput.type = 'hidden';
+      overrideInput.name = 'id';
+      overrideInput.setAttribute('data-mtm-id', '');
+    }
+    overrideInput.value = customVariantId;
+    if (!overrideInput.parentNode) form.appendChild(overrideInput);
+    idControl.disabled = true;
+  }
+  function removeCustomVariant() {
+    if (overrideInput && overrideInput.parentNode) overrideInput.parentNode.removeChild(overrideInput);
+    if (idControl) idControl.disabled = false;
+  }
+
+  // ---- unit ----------------------------------------------------------------
+  function applyUnit() {
+    var unit = current(unitRadios);
+    var max = maxForUnit(unit);
+    root.querySelectorAll('[data-measure-input]').forEach(function (i) { i.max = max; });
+    if (unitNote) unitNote.textContent = 'Enter measurements in ' + (unit === 'cm' ? 'centimetres' : 'inches') + '.';
+    if (hiddenUnit) hiddenUnit.value = unit;
+    try { localStorage.setItem(UNIT_KEY, unit); } catch (e) {}
+  }
+
+  // ---- enable/disable + panel visibility -----------------------------------
+  function syncEnabled() {
+    var mode = current(modeRadios);
+    var editing = drawerOpen;
+    var submitLive = customActive && customSaved;
+    var activeEl = activeSheetEl();
+
+    panels.forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== mode; });
+
+    sheets.forEach(function (s) {
+      if (sheets.length > 1) s.hidden = (s !== activeEl);
+      var on = (mode === 'measure') && (s === activeEl) && (editing || submitLive);
+      s.querySelectorAll('input, select, textarea').forEach(function (i) { i.disabled = !on; });
+    });
+
+    root.querySelectorAll('[data-measure-field]').forEach(function (i) {
+      i.disabled = !((editing || submitLive) && mode === 'measure');
+    });
+    if (existing) existing.disabled = !((editing || submitLive) && mode === 'existing');
+
+    if (flag)        flag.disabled        = !(submitLive && mode !== 'book');
+    if (hiddenSheet) hiddenSheet.disabled = !(submitLive && mode === 'measure');
+    if (hiddenUnit)  hiddenUnit.disabled  = !(submitLive && mode === 'measure');
+    if (hiddenJson)  hiddenJson.disabled  = !(submitLive && mode === 'measure');
+    if (submitLive && mode === 'measure' && hiddenSheet) hiddenSheet.value = activeEl.getAttribute('data-sheet');
+  }
+
+  // ---- validation + JSON ---------------------------------------------------
+  function clearError(field) {
+    field.classList.remove('MtM__Field--invalid');
+    var m = field.querySelector('[data-error]');
+    if (m) { m.hidden = true; m.textContent = ''; }
+  }
+  function showError(field, text) {
+    field.classList.add('MtM__Field--invalid');
+    var m = field.querySelector('[data-error]');
+    if (m) { m.textContent = text; m.hidden = false; }
+  }
+  function buildMeasure() {
+    var activeEl = activeSheetEl();
+    var unit = current(unitRadios);
+    var max = maxForUnit(unit);
+    var first = null, values = {};
+    var inputs = activeEl.querySelectorAll('[data-measure-input]');
+    for (var i = 0; i < inputs.length; i++) {
+      var input = inputs[i], field = input.closest('.MtM__Field');
+      if (field) clearError(field);
+      var raw = input.value.trim();
+      if (raw === '') { if (field) showError(field, 'Please enter this measurement.'); if (!first) first = input; continue; }
+      var num = parseFloat(raw);
+      if (isNaN(num) || num < 1 || num > max) {
+        if (field) showError(field, 'Enter a value between 1 and ' + max + ' ' + unit + '.');
+        if (!first) first = input; continue;
+      }
+      values[input.getAttribute('data-key')] = raw;
+    }
+    if (first) return { invalid: first };
+    if (hiddenJson) hiddenJson.value = JSON.stringify({
+      sheet: activeEl.getAttribute('data-sheet'), unit: unit,
+      garment: activeEl.getAttribute('data-garment') || '', values: values
+    });
+    return { count: Object.keys(values).length, unit: unit };
+  }
+
+  // ---- summary -------------------------------------------------------------
+  function renderSummary() {
+    var mode = current(modeRadios);
+    var text = 'Custom size';
+    if (mode === 'measure') {
+      var activeEl = activeSheetEl();
+      var legends = activeEl.querySelectorAll('.MtM__Group > .MtM__GroupLegend');
+      var names = [];
+      legends.forEach(function (l) { names.push(l.textContent.trim()); });
+      var count = 0;
+      activeEl.querySelectorAll('[data-measure-input]').forEach(function (i) { if (i.value.trim() !== '') count++; });
+      var unit = current(unitRadios);
+      text += ' · ' + (names.length ? names.join(', ') : 'Measurements') +
+              ' · ' + count + ' measurement' + (count === 1 ? '' : 's') + ' · ' + unit;
+    } else if (mode === 'existing') {
+      text += ' · Existing client: ' + (existing ? existing.value.trim() : '');
+    } else {
+      text += ' · Measurements at fitting';
+    }
+    summary.textContent = text + ' ';
+    var edit = document.createElement('button');
+    edit.type = 'button';
+    edit.setAttribute('data-mtm-edit', '');
+    edit.textContent = 'Edit';
+    summary.appendChild(edit);
+    edit.addEventListener('click', openDrawer);
+    summary.hidden = false;
+  }
+
+  // ---- drawer open/close + focus trap --------------------------------------
+  function focusables() {
+    return Array.prototype.filter.call(
+      drawer.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+      function (el) { return el.offsetParent !== null; });
+  }
+  function onKeydown(e) {
+    if (e.key === 'Escape') { e.preventDefault(); cancelDrawer(); return; }
+    if (e.key !== 'Tab') return;
+    var f = focusables(); if (!f.length) return;
+    var firstEl = f[0], lastEl = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+    else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+  }
+  function openDrawer() {
+    if (!drawerOpen) lastFocus = tile || document.activeElement;
+    drawerOpen = true;
+    drawer.setAttribute('aria-hidden', 'false');
+    overlay.hidden = false;
+    // next frame so the opacity transition runs
+    window.requestAnimationFrame(function () { overlay.classList.add('is-visible'); });
+    // Single scroll lock (theme's body-scroll-lock isn't reachable here): overflow:hidden on html + body.
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    syncEnabled();
+    document.addEventListener('keydown', onKeydown, true);
+    var f = focusables(); if (f.length) f[0].focus();
+  }
+  function closeDrawer() {
+    drawerOpen = false;
+    drawer.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('is-visible');
+    overlay.hidden = true;
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKeydown, true);
+    syncEnabled();
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  // ---- custom activate / deactivate ----------------------------------------
+  function activateCustom() {
+    if (!customActive) {
+      prevTile = null;
+      for (var i = 0; i < stdTiles.length; i++) { if (stdTiles[i].classList.contains('is-selected')) { prevTile = stdTiles[i]; break; } }
+    }
+    customActive = true;
+    for (var j = 0; j < stdTiles.length; j++) stdTiles[j].classList.remove('is-selected');
+    if (tile) { tile.classList.add('is-selected'); tile.setAttribute('aria-pressed', 'true'); }
+    if (customVariantId) applyCustomVariant();
+    syncEnabled();
+  }
+  function deactivateCustom(revert) {
+    customActive = false; customSaved = false;
+    if (tile) { tile.classList.remove('is-selected'); tile.setAttribute('aria-pressed', 'false'); }
+    removeCustomVariant();
+    if (summary) summary.hidden = true;
+    if (revert && prevTile) prevTile.classList.add('is-selected');
+    syncEnabled();
+  }
+
+  // ---- footer actions ------------------------------------------------------
+  function cancelDrawer() { if (!customSaved) deactivateCustom(true); closeDrawer(); }
+  function saveDrawer() {
+    var mode = current(modeRadios);
+    if (mode === 'measure') {
+      var res = buildMeasure();
+      if (res.invalid) { res.invalid.focus(); if (res.invalid.scrollIntoView) res.invalid.scrollIntoView({ block: 'center' }); return; }
+    } else if (mode === 'existing') {
+      if (!existing || existing.value.trim() === '') {
+        if (existingErr) existingErr.hidden = false;
+        if (existing) existing.focus();
+        return;
+      }
+      if (existingErr) existingErr.hidden = true;
+      if (hiddenJson) hiddenJson.value = '';
+    } else {
+      if (hiddenJson) hiddenJson.value = '';
+    }
+    customSaved = true;
+    syncEnabled();
+    renderSummary();
+    closeDrawer();
+  }
+
+  // ---- wiring --------------------------------------------------------------
+  try {
+    var savedUnit = localStorage.getItem(UNIT_KEY);
+    if (savedUnit === 'cm' || savedUnit === 'in') unitRadios.forEach(function (r) { r.checked = (r.value === savedUnit); });
+  } catch (e) {}
+
+  if (tile) tile.addEventListener('click', function () { activateCustom(); openDrawer(); });
+  for (var t = 0; t < stdTiles.length; t++) {
+    stdTiles[t].addEventListener('click', function () { if (customActive) deactivateCustom(false); });
+  }
+
+  modeRadios.forEach(function (r) { r.addEventListener('change', function () { syncEnabled(); }); });
+  sheetRadios.forEach(function (r) { r.addEventListener('change', function () { syncEnabled(); }); });
+  unitRadios.forEach(function (r) { r.addEventListener('change', applyUnit); });
+
+  root.querySelector('[data-mtm-close]').addEventListener('click', cancelDrawer);
+  root.querySelector('[data-mtm-cancel]').addEventListener('click', cancelDrawer);
+  root.querySelector('[data-mtm-save]').addEventListener('click', saveDrawer);
+  overlay.addEventListener('click', cancelDrawer);
+
+  form.addEventListener('submit', function (e) {
+    if (!customActive) return;            // standard size: custom inputs are disabled
+    if (!customSaved) {                   // custom chosen but not saved → open drawer instead
+      e.preventDefault(); e.stopImmediatePropagation(); openDrawer();
+    }
+  }, true);                               // capture: before the theme's add-to-cart handler
+
+  applyUnit();
+  syncEnabled();
+})();
+</script>

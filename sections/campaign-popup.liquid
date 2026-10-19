@@ -1,0 +1,1023 @@
+{%- comment -%}
+  ============================================================================
+  Campaign popup — a fully editable signup / announcement overlay.
+
+  Everything (content, fields, timing, targeting, schedule, look) is edited in
+  the theme editor via this section's settings. No app, no external script, no
+  new library. Rendered once, site-wide, from layout/theme.liquid as a static
+  section so it shows in the editor sidebar on every page.
+
+  It is intentionally NOT tied to any "disable popups" switch — that switch
+  keeps hiding the other (legacy) popups; this one is controlled only by its
+  own "enable" setting and the targeting/timing below.
+
+  Self-contained like snippets/whatsapp-concierge.liquid and the MtM drawer:
+  scoped <style> using theme tokens, and one inline IIFE for behaviour.
+  ============================================================================
+{%- endcomment -%}
+
+{%- liquid
+  assign cp_enabled = section.settings.enable
+
+  # Server-side suppression that never depends on JS/storage.
+  assign cp_render = true
+
+  unless cp_enabled
+    assign cp_render = false
+  endunless
+
+  # Logged-in gate.
+  if section.settings.hide_for_logged_in and customer
+    assign cp_render = false
+  endif
+
+  # "new visitors only" also needs "not logged in" — safe to resolve server-side.
+  if section.settings.audience == 'new' and customer
+    assign cp_render = false
+  endif
+
+  # Build a comparable template token: "page.book-fitting", "cart", etc.
+  assign cp_tpl = template.name
+  if template.suffix != blank
+    assign cp_tpl = cp_tpl | append: '.' | append: template.suffix
+  endif
+
+  # exclude_templates — matches template.name, "name.suffix", or directory.
+  assign cp_excl = section.settings.exclude_templates | downcase | split: ','
+  for tok in cp_excl
+    assign tok = tok | strip
+    if tok == blank
+      continue
+    endif
+    if tok == cp_tpl or tok == template.name or tok == template.directory
+      assign cp_render = false
+    endif
+  endfor
+
+  # show_on — page-type gate.
+  assign cp_show_on = section.settings.show_on
+  unless cp_show_on == 'all'
+    assign cp_match = false
+    if cp_show_on == 'home' and template.name == 'index'
+      assign cp_match = true
+    endif
+    if cp_show_on == 'products' and template.name == 'product'
+      assign cp_match = true
+    endif
+    if cp_show_on == 'collections' and template.name == 'collection'
+      assign cp_match = true
+    endif
+    if cp_show_on == 'pages' and template.name == 'page'
+      assign cp_match = true
+    endif
+    unless cp_match
+      assign cp_render = false
+    endunless
+  endunless
+
+  # include_paths — if filled, only show on those exact paths.
+  assign cp_include = section.settings.include_paths | strip
+  if cp_include != blank
+    assign cp_in = false
+    assign cp_lines = cp_include | newline_to_br | split: '<br />'
+    for ln in cp_lines
+      assign p = ln | strip | strip_newlines
+      if p != blank and p == request.path
+        assign cp_in = true
+      endif
+    endfor
+    unless cp_in
+      assign cp_render = false
+    endunless
+  endif
+
+  # In the theme editor we always render so the section can be selected/edited.
+  if request.design_mode
+    assign cp_render = true
+  endif
+-%}
+
+{%- if cp_render -%}
+  {%- liquid
+    assign campaign_id = section.settings.campaign_id | default: 'welcome-oct26' | strip
+    assign offer_type  = section.settings.offer_type | default: 'discount_code'
+    assign discount    = section.settings.discount_code | default: 'WELCOME10' | strip
+    assign shop_now_link = section.settings.shop_now_link | default: '/collections/all'
+    assign shop_now_label = section.settings.shop_now_label | default: 'Shop now'
+
+    # Form is only meaningful for discount_code or announcement-with-form.
+    assign has_form = false
+    if section.settings.show_form and offer_type != 'link'
+      assign has_form = true
+    endif
+
+    # Base tags: customer_tags + campaign_id (whatsapp-optin appended in JS).
+    assign base_tags = section.settings.customer_tags | default: 'newsletter,popup-10off'
+    assign base_tags = base_tags | append: ',' | append: campaign_id
+
+    # Colours — fall back to theme tokens when the pickers are left blank.
+    assign c_bg     = section.settings.bg_color | default: settings.newsletter_popup_background | default: settings.background
+    assign c_text   = section.settings.text_color | default: settings.newsletter_popup_text_color | default: settings.text_color
+    assign c_accent = section.settings.accent_color | default: settings.button_background
+    assign c_btn_text = settings.button_text_color
+
+    assign uid = section.id
+
+    # Editor preview of the success state.
+    assign preview_success = false
+    if request.design_mode and section.settings.preview_success
+      assign preview_success = true
+    endif
+  -%}
+
+  {%- capture cp_config -%}
+    {
+      "campaignId": {{ campaign_id | json }},
+      "delayMin": {{ section.settings.delay_min | json }},
+      "delayMax": {{ section.settings.delay_max | json }},
+      "dismissDays": {{ section.settings.dismiss_days | json }},
+      "frequency": {{ section.settings.frequency | json }},
+      "audience": {{ section.settings.audience | json }},
+      "devices": {{ section.settings.devices | json }},
+      "startDate": {{ section.settings.start_date | strip | json }},
+      "endDate": {{ section.settings.end_date | strip | json }},
+      "defaultPhone": "+91",
+      "designMode": {{ request.design_mode | default: false | json }},
+      "previewSuccess": {{ preview_success | json }}
+    }
+  {%- endcapture -%}
+
+  <div class="CampaignPopup CampaignPopup--{{ section.settings.desktop_layout | default: 'centred' }}"
+       id="CampaignPopup-{{ uid }}"
+       data-campaign-popup
+       data-config='{{ cp_config | strip_newlines }}'
+       {% if has_form and offer_type == 'discount_code' %}data-discount="{{ discount | escape }}" data-shop-now="{{ shop_now_link | escape }}"{% endif %}
+       aria-hidden="true"
+       hidden>
+
+    <div class="CampaignPopup__Overlay" data-cp-overlay></div>
+
+    <div class="CampaignPopup__Dialog"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="CampaignPopup-heading-{{ uid }}"
+         {% if section.settings.image != blank and section.settings.image_position == 'left' %}data-cp-image-left{% endif %}>
+
+      <button type="button" class="CampaignPopup__Close" data-cp-close aria-label="Close">
+        {% include 'icon' with 'close' %}
+      </button>
+
+      {%- if section.settings.image != blank and section.settings.image_position != 'none' -%}
+        <div class="CampaignPopup__Media CampaignPopup__Media--{{ section.settings.image_position }}">
+          {%- assign img_w = 880 -%}
+          <img class="CampaignPopup__Image"
+               src="{{ section.settings.image | img_url: '880x' }}"
+               srcset="{{ section.settings.image | img_url: '440x' }} 440w, {{ section.settings.image | img_url: '880x' }} 880w"
+               sizes="(max-width: 749px) 100vw, 50vw"
+               width="{{ section.settings.image.width }}"
+               height="{{ section.settings.image.height }}"
+               alt="{{ section.settings.image.alt | escape }}"
+               loading="lazy">
+        </div>
+      {%- endif -%}
+
+      <div class="CampaignPopup__Body" data-cp-body>
+
+        {%- comment -%} ---------- OFFER / FORM STATE ---------- {%- endcomment -%}
+        <div class="CampaignPopup__State" data-cp-state="offer" {% if preview_success %}hidden{% endif %}>
+          {%- if section.settings.heading != blank -%}
+            <h2 class="CampaignPopup__Heading Heading u-h3" id="CampaignPopup-heading-{{ uid }}">{{ section.settings.heading | escape }}</h2>
+          {%- endif -%}
+
+          {%- if section.settings.text != blank -%}
+            <div class="CampaignPopup__Text Rte">{{ section.settings.text }}</div>
+          {%- endif -%}
+
+          {%- if offer_type == 'link' -%}
+            {%- comment -%} Announcement with a link button, no form. {%- endcomment -%}
+            {%- if section.settings.link_url != blank -%}
+              <a class="Button Button--primary Button--full" href="{{ section.settings.link_url }}">{{ section.settings.link_label | default: 'Learn more' | escape }}</a>
+            {%- endif -%}
+
+          {%- elsif has_form -%}
+            {%- form 'customer', id: 'CampaignPopupForm', class: 'CampaignPopup__Form Form' -%}
+              {%- if form.posted_successfully? -%}
+                {%- comment -%} Marker so JS reopens straight into success on return. {%- endcomment -%}
+                <input type="hidden" data-cp-posted value="1">
+              {%- else -%}
+                {%- if form.errors -%}
+                  <p class="Form__Alert Alert Alert--error" data-cp-form-error>{{ form.errors.translated_fields.email | default: 'email' }} {{ form.errors.messages.email | default: form.errors.messages.form }}</p>
+                {%- endif -%}
+
+                <input type="hidden" name="return_to" value="{{ request.path }}">
+                <input type="hidden" name="contact[tags]" value="{{ base_tags | escape }}" data-cp-tags>
+                {%- comment -%} first/last are split from the full-name field by JS before submit. {%- endcomment -%}
+                <input type="hidden" name="contact[first_name]" data-cp-first>
+                <input type="hidden" name="contact[last_name]" data-cp-last>
+
+                {%- unless section.settings.field_name == 'hidden' -%}
+                  <div class="CampaignPopup__Field" data-cp-field="name">
+                    <label class="Form__Label" for="cp-name-{{ uid }}">Name{% if section.settings.field_name == 'required' %} *{% endif %}</label>
+                    <input type="text" id="cp-name-{{ uid }}" class="Form__Input" autocomplete="name"
+                           data-cp-fullname data-cp-req="{{ section.settings.field_name }}">
+                    <p class="CampaignPopup__Error" data-cp-err hidden></p>
+                  </div>
+                {%- endunless -%}
+
+                <div class="CampaignPopup__Field" data-cp-field="email">
+                  <label class="Form__Label" for="cp-email-{{ uid }}">Email{% if section.settings.field_email == 'required' %} *{% endif %}</label>
+                  <input type="email" id="cp-email-{{ uid }}" class="Form__Input" name="contact[email]" autocomplete="email"
+                         data-cp-email data-cp-req="{{ section.settings.field_email }}">
+                  <p class="CampaignPopup__Error" data-cp-err hidden></p>
+                </div>
+
+                {%- unless section.settings.field_phone == 'hidden' -%}
+                  <div class="CampaignPopup__Field" data-cp-field="phone">
+                    <label class="Form__Label" for="cp-phone-{{ uid }}">Phone{% if section.settings.field_phone == 'required' %} *{% endif %}</label>
+                    <input type="tel" id="cp-phone-{{ uid }}" class="Form__Input" name="contact[phone]" autocomplete="tel"
+                           inputmode="tel" placeholder="+91" data-cp-phone data-cp-req="{{ section.settings.field_phone }}">
+                    <p class="CampaignPopup__Error" data-cp-err hidden></p>
+                  </div>
+                {%- else -%}
+                  <input type="hidden" name="contact[phone]" data-cp-phone data-cp-req="hidden">
+                {%- endunless -%}
+
+                {%- if section.settings.show_whatsapp_optin -%}
+                  <label class="CampaignPopup__Optin">
+                    <input type="checkbox" data-cp-whatsapp>
+                    <span>{{ section.settings.whatsapp_optin_label | default: 'Also send me updates on WhatsApp' | escape }}</span>
+                  </label>
+                {%- endif -%}
+
+                <button type="submit" class="Button Button--primary Button--full" data-cp-submit>{{ section.settings.button_label | default: 'Get my 10%' | escape }}</button>
+
+                {%- if section.settings.legal_text != blank -%}
+                  <div class="CampaignPopup__Legal Text--subdued Rte">{{ section.settings.legal_text }}</div>
+                {%- endif -%}
+              {%- endif -%}
+            {%- endform -%}
+
+          {%- else -%}
+            {%- comment -%} Announcement with no form — content plus a button. {%- endcomment -%}
+            <a class="Button Button--primary Button--full" href="{{ shop_now_link }}">{{ shop_now_label | escape }}</a>
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} ---------- SUCCESS STATE ---------- {%- endcomment -%}
+        <div class="CampaignPopup__State" data-cp-state="success" {% unless preview_success %}hidden{% endunless %}>
+          {%- if section.settings.success_heading != blank -%}
+            <h2 class="CampaignPopup__Heading Heading u-h3" data-cp-success-heading>{{ section.settings.success_heading | escape }}</h2>
+          {%- endif -%}
+
+          {%- if section.settings.success_text != blank -%}
+            <div class="CampaignPopup__Text Rte">{{ section.settings.success_text }}</div>
+          {%- endif -%}
+
+          {%- if offer_type == 'discount_code' and has_form -%}
+            <div class="CampaignPopup__Code" data-cp-code-box>
+              <span class="CampaignPopup__CodeValue" data-cp-code-value>{{ discount | escape }}</span>
+              <button type="button" class="CampaignPopup__CodeCopy Button Button--secondary" data-cp-copy>Copy</button>
+            </div>
+            <p class="CampaignPopup__Copied Text--subdued" data-cp-copied aria-live="polite" hidden>Copied</p>
+            <a class="Button Button--primary Button--full" data-cp-shop-now
+               href="/discount/{{ discount | url_encode }}?redirect={{ shop_now_link | url_encode }}">{{ shop_now_label | escape }}</a>
+
+          {%- elsif offer_type == 'link' and section.settings.link_url != blank -%}
+            <a class="Button Button--primary Button--full" href="{{ section.settings.link_url }}">{{ section.settings.link_label | default: 'Learn more' | escape }}</a>
+
+          {%- else -%}
+            <a class="Button Button--primary Button--full" href="{{ shop_now_link }}">{{ shop_now_label | escape }}</a>
+          {%- endif -%}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <style>
+    #CampaignPopup-{{ uid }} {
+      --cp-bg: {{ c_bg }};
+      --cp-text: {{ c_text }};
+      --cp-accent: {{ c_accent }};
+      --cp-btn-text: {{ c_btn_text }};
+      --cp-max: {{ section.settings.max_width | default: 440 }}px;
+      position: fixed;
+      inset: 0;
+      z-index: 1100;
+      display: none;
+    }
+    #CampaignPopup-{{ uid }}[aria-hidden="false"] { display: block; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 20, 20, 0.5);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    #CampaignPopup-{{ uid }}[aria-hidden="false"] .CampaignPopup__Overlay { opacity: 1; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Dialog {
+      position: fixed;
+      box-sizing: border-box;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Dialog *,
+    #CampaignPopup-{{ uid }} .CampaignPopup__Dialog *::before,
+    #CampaignPopup-{{ uid }} .CampaignPopup__Dialog *::after { box-sizing: border-box; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 2;
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Close:hover { opacity: 1; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Close svg { width: 16px; height: 16px; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Media--top { flex: none; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Media--top .CampaignPopup__Image {
+      display: block; width: 100%; height: auto; object-fit: cover; max-height: 260px;
+    }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 32px 28px;
+    }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Heading { margin: 0 0 12px; color: inherit; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Text { margin: 0 0 20px; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Text p:last-child { margin-bottom: 0; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Field { margin: 0 0 14px; text-align: left; }
+    #CampaignPopup-{{ uid }} .Form__Label { display: block; margin-bottom: 4px; }
+    #CampaignPopup-{{ uid }} .Form__Input { width: 100%; }
+    #CampaignPopup-{{ uid }} .Button--full { width: 100%; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Error { margin: 4px 0 0; font-size: 12px; color: #B5423B; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Field--invalid .Form__Input { border-color: #B5423B; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Optin {
+      display: flex; align-items: flex-start; gap: 8px; margin: 0 0 16px; font-size: 13px; text-align: left; cursor: pointer;
+    }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Optin input { margin-top: 3px; }
+
+    #CampaignPopup-{{ uid }} .Button--primary { background: var(--cp-accent); color: var(--cp-btn-text); border-color: var(--cp-accent); }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Legal { margin: 14px 0 0; font-size: 11px; line-height: 1.5; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Legal a { color: inherit; text-decoration: underline; }
+
+    #CampaignPopup-{{ uid }} .CampaignPopup__Code {
+      display: flex; align-items: stretch; gap: 10px; margin: 0 0 8px;
+    }
+    #CampaignPopup-{{ uid }} .CampaignPopup__CodeValue {
+      flex: 1 1 auto;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 18px;
+      border: 1px dashed var(--cp-accent);
+      font-size: 22px; letter-spacing: 0.12em; font-weight: 700;
+      text-transform: uppercase;
+      word-break: break-all;
+    }
+    #CampaignPopup-{{ uid }} .CampaignPopup__CodeCopy { flex: 0 0 auto; }
+    #CampaignPopup-{{ uid }} .CampaignPopup__Copied { margin: 0 0 14px; }
+    #CampaignPopup-{{ uid }} .Form__Alert { margin: 0 0 14px; }
+
+    /* ---------------- Desktop (>= 750px): centred modal / right side panel ----------------
+       All desktop positioning + transforms live here so they can NEVER leak into the
+       mobile breakpoint via specificity. */
+    @media (min-width: 750px) {
+      #CampaignPopup-{{ uid }}.CampaignPopup--centred .CampaignPopup__Dialog {
+        top: 50%;
+        left: 50%;
+        width: calc(100vw - 40px);
+        max-width: var(--cp-max);
+        max-height: 85vh;
+        max-height: 85dvh;
+        transform: translate(-50%, calc(-50% + 16px));
+        opacity: 0;
+        transition: transform 0.4s cubic-bezier(0.645,0.045,0.355,1), opacity 0.4s ease;
+      }
+      #CampaignPopup-{{ uid }}.CampaignPopup--centred[aria-hidden="false"] .CampaignPopup__Dialog {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+
+      #CampaignPopup-{{ uid }}.CampaignPopup--side_panel_right .CampaignPopup__Dialog {
+        top: 0;
+        right: 0;
+        height: 100%;
+        max-height: 100%;
+        width: var(--cp-max);
+        max-width: 100vw;
+        transform: translateX(100%);
+        transition: transform 0.4s cubic-bezier(0.645,0.045,0.355,1);
+      }
+      #CampaignPopup-{{ uid }}.CampaignPopup--side_panel_right[aria-hidden="false"] .CampaignPopup__Dialog {
+        transform: translateX(0);
+      }
+
+      /* Image on the left — two columns */
+      #CampaignPopup-{{ uid }} .CampaignPopup__Dialog[data-cp-image-left] { flex-direction: row; max-width: calc(var(--cp-max) + 260px); }
+      #CampaignPopup-{{ uid }} .CampaignPopup__Media--left { flex: 0 0 240px; }
+      #CampaignPopup-{{ uid }} .CampaignPopup__Media--left .CampaignPopup__Image { width: 100%; height: 100%; object-fit: cover; }
+    }
+
+    /* ---------------- Mobile (<= 749px): full-width bottom sheet ---------------- */
+    @media (max-width: 749px) {
+      #CampaignPopup-{{ uid }} .CampaignPopup__Dialog,
+      #CampaignPopup-{{ uid }}.CampaignPopup--centred .CampaignPopup__Dialog,
+      #CampaignPopup-{{ uid }}.CampaignPopup--side_panel_right .CampaignPopup__Dialog {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: 85vh;
+        max-height: 85dvh;
+        margin: 0;
+        border-radius: 14px 14px 0 0;
+        opacity: 1;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.645,0.045,0.355,1);
+      }
+      #CampaignPopup-{{ uid }}[aria-hidden="false"] .CampaignPopup__Dialog,
+      #CampaignPopup-{{ uid }}.CampaignPopup--centred[aria-hidden="false"] .CampaignPopup__Dialog,
+      #CampaignPopup-{{ uid }}.CampaignPopup--side_panel_right[aria-hidden="false"] .CampaignPopup__Dialog {
+        transform: translateY(0);
+      }
+
+      /* Image: hide the left variant, cap the top variant */
+      #CampaignPopup-{{ uid }} .CampaignPopup__Media--left { display: none; }
+      #CampaignPopup-{{ uid }} .CampaignPopup__Media--top .CampaignPopup__Image { max-height: 140px; }
+
+      /* Scrollable body with 20px gutters + safe-area padding at the bottom */
+      #CampaignPopup-{{ uid }} .CampaignPopup__Body {
+        padding: 24px 20px calc(16px + env(safe-area-inset-bottom));
+      }
+
+      /* >= 16px avoids iOS auto-zoom on focus */
+      #CampaignPopup-{{ uid }} .Form__Input,
+      #CampaignPopup-{{ uid }} input[type="text"],
+      #CampaignPopup-{{ uid }} input[type="email"],
+      #CampaignPopup-{{ uid }} input[type="tel"] {
+        font-size: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #CampaignPopup-{{ uid }} .CampaignPopup__Overlay,
+      #CampaignPopup-{{ uid }} .CampaignPopup__Dialog { transition: none !important; }
+    }
+  </style>
+
+  <script>
+  (function () {
+    var SECTION_ID = {{ section.id | json }};
+    var ROOT_ID = 'CampaignPopup-{{ uid }}';
+
+    function init() {
+      var root = document.getElementById(ROOT_ID);
+      if (!root) return;
+      // Park the popup (overlay + panel) directly on <body> so no transformed /
+      // filtered / perspective ancestor can turn its position:fixed into
+      // positioning relative to that ancestor. Drop any stale copy a previous
+      // editor reload left on <body> first, so we never end up with duplicates.
+      var kids = document.body.children;
+      for (var i = kids.length - 1; i >= 0; i--) {
+        if (kids[i].id === ROOT_ID && kids[i] !== root) document.body.removeChild(kids[i]);
+      }
+      if (root.parentNode !== document.body) document.body.appendChild(root);
+      setup(root);
+    }
+
+    function setup(root) {
+      if (root.__cpInit) return;          // already wired (e.g. appended twice)
+      root.__cpInit = true;
+
+      var cfg = {};
+      try { cfg = JSON.parse(root.getAttribute('data-config') || '{}'); } catch (e) { cfg = {}; }
+
+    var dialog   = root.querySelector('.CampaignPopup__Dialog');
+    var overlay  = root.querySelector('[data-cp-overlay]');
+    var closeBtn = root.querySelector('[data-cp-close]');
+    var form     = root.querySelector('form');
+    var offerEl  = root.querySelector('[data-cp-state="offer"]');
+    var successEl= root.querySelector('[data-cp-state="success"]');
+    var postedFlag = root.querySelector('[data-cp-posted]');
+
+    var NS = 'ab_cp_' + (cfg.campaignId || 'x') + '_';
+    var VISIT_KEY = 'ab_cp_visited';
+    var lastFocus = null, isOpen = false, retryTimer = null;
+
+    // Capture "new visitor" BEFORE we record this visit, so a genuinely first
+    // visit still counts as new for the audience check below (lget is hoisted).
+    var wasNewVisitor = !lget(VISIT_KEY);
+
+    // ---- storage helpers (every access guarded) ----
+    function lget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lset(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function sget(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+    function sset(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+    function srem(k) { try { sessionStorage.removeItem(k); } catch (e) {} }
+
+    // ---- focus trap ----
+    function focusables() {
+      return Array.prototype.filter.call(
+        dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+        function (el) { return el.offsetParent !== null; });
+    }
+    function onKeydown(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(true); return; }
+      if (e.key !== 'Tab') return;
+      var f = focusables(); if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+
+    // ---- another drawer/dialog open? ----
+    function otherDialogOpen() {
+      var sel = '.Drawer[aria-hidden="false"], .Modal[aria-hidden="false"], .AbBoard__Panel[aria-hidden="false"], [data-mtm-drawer][aria-hidden="false"], #Search[aria-hidden="false"], .NewsletterPopup[aria-hidden="false"]';
+      return !!document.querySelector(sel);
+    }
+
+    function open() {
+      if (isOpen) return;
+      isOpen = true;
+      lastFocus = document.activeElement;
+      root.hidden = false;
+      // next frame so transitions run
+      window.requestAnimationFrame(function () { root.setAttribute('aria-hidden', 'false'); });
+      // single body scroll lock (theme lock isn't reachable here)
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', onKeydown, true);
+      var f = focusables(); if (f.length) { try { f[0].focus(); } catch (e) {} }
+    }
+    function close(remember) {
+      if (!isOpen) return;
+      isOpen = false;
+      root.setAttribute('aria-hidden', 'true');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onKeydown, true);
+      window.setTimeout(function () { if (!isOpen) root.hidden = true; }, 420);
+      if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) {} }
+      if (remember && !cfg.designMode) {
+        if (cfg.frequency === 'session') { sset(NS + 'closed', '1'); }
+        else { lset(NS + 'closed', String(Date.now())); }
+      }
+    }
+
+    function showSuccess() {
+      if (offerEl) offerEl.hidden = true;
+      if (successEl) successEl.hidden = false;
+    }
+
+    // ---- close wiring ----
+    if (closeBtn) closeBtn.addEventListener('click', function () { close(true); });
+    if (overlay) overlay.addEventListener('click', function () { close(true); });
+
+    // ---- keyboard: keep the focused field (and the submit button below it)
+    // reachable by scrolling it into view inside the scrollable sheet body.
+    var bodyEl = root.querySelector('[data-cp-body]');
+    if (bodyEl) {
+      bodyEl.addEventListener('focusin', function (e) {
+        var t = e.target;
+        if (!t || typeof t.matches !== 'function') return;
+        if (!t.matches('input, textarea, select, button')) return;
+        // Delay so the on-screen keyboard has started resizing the viewport.
+        window.setTimeout(function () {
+          try { t.scrollIntoView({ block: 'nearest' }); } catch (err) {}
+        }, 300);
+      });
+    }
+
+    // ===================================================================
+    // THEME EDITOR: show immediately when selected, ignore memory/timing.
+    // ===================================================================
+    if (cfg.designMode) {
+      if (cfg.previewSuccess) showSuccess();
+      open();
+      wireForm();
+      return;
+    }
+
+    // ===================================================================
+    // A customer form on this page posted successfully. Because Shopify keys
+    // posted_successfully? by form TYPE (not id), this is only *our* popup if
+    // we set the submit marker just before posting — otherwise it was another
+    // customer form (e.g. the footer newsletter), so we stay closed.
+    // ===================================================================
+    if (postedFlag) {
+      if (sget(NS + 'submitting')) {
+        srem(NS + 'submitting');
+        lset(NS + 'signed', '1');
+        track();
+        showSuccess();
+        open();
+        wireForm();
+      }
+      return;
+    }
+
+    // ---- client-side eligibility ----
+    function deviceOk() {
+      if (cfg.devices === 'mobile') return window.matchMedia('(max-width: 749px)').matches;
+      if (cfg.devices === 'desktop') return window.matchMedia('(min-width: 750px)').matches;
+      return true;
+    }
+    // Schedule compared in IST (UTC+5:30), blank = no limit.
+    function scheduleOk() {
+      function istNow() {
+        var now = new Date();
+        return new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (330 * 60000));
+      }
+      var ist = istNow();
+      var today = ist.getFullYear() + '-' +
+        ('0' + (ist.getMonth() + 1)).slice(-2) + '-' +
+        ('0' + ist.getDate()).slice(-2);
+      if (cfg.startDate && today < cfg.startDate) return false;
+      if (cfg.endDate && today > cfg.endDate) return false;
+      return true;
+    }
+    function audienceOk() {
+      if (cfg.audience !== 'new') return true;
+      // "new" = no previous visit stored (logged-in already excluded server-side)
+      return wasNewVisitor;
+    }
+    function memoryOk() {
+      if (lget(NS + 'signed')) return false;                 // signed up → never again
+      if (cfg.frequency === 'session') {
+        if (sget(NS + 'closed')) return false;
+      } else {
+        var closed = parseInt(lget(NS + 'closed') || '0', 10);
+        if (closed) {
+          var days = parseInt(cfg.dismissDays, 10) || 0;
+          if (days === 0) return true;                        // 0 = show again next visit (session handled below)
+          if (Date.now() - closed < days * 86400000) return false;
+        }
+      }
+      return true;
+    }
+    function urlBlocks() {
+      var s = location.search || '';
+      if (s.indexOf('b=') > -1) return true;                  // another flow in progress
+      // a contact/customer post for ANOTHER form (ours is handled above via postedFlag)
+      if (s.indexOf('contact_posted') > -1 || s.indexOf('customer_posted') > -1) return true;
+      return false;
+    }
+
+    // mark this visit (for future "new visitor" checks)
+    if (!lget(VISIT_KEY)) lset(VISIT_KEY, String(Date.now()));
+
+    if (!cfg.previewSuccess && (!deviceOk() || !scheduleOk() || !audienceOk() || !memoryOk() || urlBlocks())) {
+      return;
+    }
+
+    // ---- open after a random delay, only when visible, never over another dialog ----
+    function tryOpen() {
+      if (document.hidden) {
+        document.addEventListener('visibilitychange', function once() {
+          document.removeEventListener('visibilitychange', once);
+          tryOpen();
+        });
+        return;
+      }
+      if (otherDialogOpen()) {
+        clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(tryOpen, 3000);
+        return;
+      }
+      open();
+      wireForm();
+    }
+
+    var dmin = parseFloat(cfg.delayMin); if (isNaN(dmin)) dmin = 5;
+    var dmax = parseFloat(cfg.delayMax); if (isNaN(dmax)) dmax = 8;
+    if (dmax < dmin) dmax = dmin;
+    var delay = (dmin + Math.random() * (dmax - dmin)) * 1000;
+    window.setTimeout(tryOpen, delay);
+
+    // ===================================================================
+    // FORM behaviour: validation, name split, phone normalise, tags.
+    // ===================================================================
+    function wireForm() {
+      if (!form || form.__cpWired) return;
+      form.__cpWired = true;
+
+      var fullName = form.querySelector('[data-cp-fullname]');
+      var firstHid = form.querySelector('[data-cp-first]');
+      var lastHid  = form.querySelector('[data-cp-last]');
+      var email    = form.querySelector('[data-cp-email]');
+      var phone    = form.querySelector('[data-cp-phone]');
+      var tagsHid  = form.querySelector('[data-cp-tags]');
+      var whatsapp = form.querySelector('[data-cp-whatsapp]');
+
+      function fieldOf(input) { return input ? input.closest('.CampaignPopup__Field') : null; }
+      function clearErr(input) {
+        var f = fieldOf(input); if (!f) return;
+        f.classList.remove('CampaignPopup__Field--invalid');
+        var m = f.querySelector('[data-cp-err]'); if (m) { m.hidden = true; m.textContent = ''; }
+      }
+      function showErr(input, msg) {
+        var f = fieldOf(input); if (!f) return;
+        f.classList.add('CampaignPopup__Field--invalid');
+        var m = f.querySelector('[data-cp-err]'); if (m) { m.textContent = msg; m.hidden = false; }
+      }
+      function req(input) { return input ? input.getAttribute('data-cp-req') : 'hidden'; }
+
+      // +<digits>, >=10 digits, default +91
+      function normPhone(raw) {
+        var v = (raw || '').trim();
+        if (!v) return '';
+        if (v.charAt(0) === '+') {
+          var rest = v.slice(1).replace(/\D/g, '');
+          return rest ? '+' + rest : '';
+        }
+        var d = v.replace(/\D/g, '').replace(/^0+/, '');
+        if (!d) return '';
+        return (cfg.defaultPhone || '+91') + d;
+      }
+
+      form.addEventListener('submit', function (e) {
+        var firstBad = null;
+
+        // name
+        if (fullName) {
+          clearErr(fullName);
+          var nv = fullName.value.trim();
+          if (!nv && req(fullName) === 'required') { showErr(fullName, 'Please enter your name.'); firstBad = firstBad || fullName; }
+          if (nv) {
+            var sp = nv.indexOf(' ');
+            if (firstHid) firstHid.value = sp > -1 ? nv.slice(0, sp) : nv;
+            if (lastHid)  lastHid.value  = sp > -1 ? nv.slice(sp + 1).trim() : '';
+          }
+        }
+
+        // email (customer form always needs it)
+        if (email) {
+          clearErr(email);
+          var ev = email.value.trim();
+          var emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ev);
+          if (!ev && req(email) === 'required') { showErr(email, 'Please enter your email.'); firstBad = firstBad || email; }
+          else if (ev && !emailOk) { showErr(email, 'Please enter a valid email.'); firstBad = firstBad || email; }
+        }
+
+        // phone
+        if (phone) {
+          clearErr(phone);
+          var pv = phone.value.trim();
+          if (!pv && req(phone) === 'required') { showErr(phone, 'Please enter your phone number.'); firstBad = firstBad || phone; }
+          else if (pv) {
+            var np = normPhone(pv);
+            if (np.replace(/\D/g, '').length < 10) { showErr(phone, 'Enter at least 10 digits.'); firstBad = firstBad || phone; }
+            else { phone.value = np; }
+          }
+        }
+
+        // tags (+ whatsapp-optin)
+        if (tagsHid && whatsapp && whatsapp.checked) {
+          if (tagsHid.value.indexOf('whatsapp-optin') === -1) tagsHid.value = tagsHid.value + ',whatsapp-optin';
+        }
+
+        if (firstBad) {
+          e.preventDefault();
+          try { firstBad.focus(); } catch (err) {}
+          if (firstBad.scrollIntoView) firstBad.scrollIntoView({ block: 'center' });
+          return;
+        }
+        // valid → mark that WE are posting, then let the native customer form
+        // submit (returns to this page via return_to, where we reopen success).
+        sset(NS + 'submitting', '1');
+      });
+
+      // copy-to-clipboard for discount code
+      var copyBtn = root.querySelector('[data-cp-copy]');
+      var codeVal = root.querySelector('[data-cp-code-value]');
+      var copied  = root.querySelector('[data-cp-copied]');
+      if (copyBtn && codeVal) {
+        copyBtn.addEventListener('click', function () {
+          var code = (codeVal.textContent || '').trim();
+          function done() { if (copied) { copied.hidden = false; } }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(done, fallback);
+          } else { fallback(); }
+          function fallback() {
+            try {
+              var ta = document.createElement('textarea');
+              ta.value = code; ta.setAttribute('readonly', '');
+              ta.style.position = 'absolute'; ta.style.left = '-9999px';
+              document.body.appendChild(ta); ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+              done();
+            } catch (err) {}
+          }
+        });
+      }
+    }
+
+    // ===================================================================
+    // Tracking (guarded).
+    // ===================================================================
+    function track() {
+      try {
+        if (window.dataLayer) window.dataLayer.push({ event: 'popup_signup', campaign: cfg.campaignId });
+        if (typeof window.fbq === 'function') window.fbq('track', 'Lead');
+      } catch (e) {}
+    }
+    } // ---- end setup() ----
+
+    // Run now on a normal page, or once the DOM is ready.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+    // Theme editor: re-init when this section (re)loads, and remove the
+    // body-parked copy when it unloads. Bind the document listeners only once,
+    // even though this inline script re-executes on every section:load.
+    if (!window.__cpSectionBound) window.__cpSectionBound = {};
+    if (!window.__cpSectionBound[ROOT_ID]) {
+      window.__cpSectionBound[ROOT_ID] = true;
+      document.addEventListener('shopify:section:load', function (e) {
+        if (e.detail && e.detail.sectionId === SECTION_ID) init();
+      });
+      document.addEventListener('shopify:section:unload', function (e) {
+        if (e.detail && e.detail.sectionId !== SECTION_ID) return;
+        var moved = document.getElementById(ROOT_ID);
+        if (moved && moved.parentNode) moved.parentNode.removeChild(moved);
+      });
+    }
+  })();
+  </script>
+
+  {%- comment -%} ----- Editor sidebar name ----- {%- endcomment -%}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Campaign popup",
+  "settings": [
+    { "type": "checkbox", "id": "enable", "label": "Enable", "default": false },
+    {
+      "type": "text", "id": "campaign_id", "label": "Campaign ID", "default": "welcome-oct26",
+      "info": "Changing this resets seen / closed / signed-up memory so the new campaign shows again. It is also added to the customer tags."
+    },
+
+    { "type": "header", "content": "Content" },
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    {
+      "type": "select", "id": "image_position", "label": "Image position", "default": "top",
+      "options": [
+        { "value": "top", "label": "Top" },
+        { "value": "left", "label": "Left (desktop)" },
+        { "value": "none", "label": "None" }
+      ]
+    },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "10% off your first piece" },
+    { "type": "richtext", "id": "text", "label": "Text", "default": "<p>Join the list for first access to new pieces and a welcome gift.</p>" },
+    {
+      "type": "select", "id": "offer_type", "label": "Offer type", "default": "discount_code",
+      "info": "Discount code and Announcement can show a signup form. Link shows a button only.",
+      "options": [
+        { "value": "discount_code", "label": "Discount code" },
+        { "value": "announcement", "label": "Announcement" },
+        { "value": "link", "label": "Link" }
+      ]
+    },
+    { "type": "text", "id": "discount_code", "label": "Discount code", "default": "WELCOME10", "info": "Used when Offer type is Discount code." },
+    { "type": "text", "id": "button_label", "label": "Form button label", "default": "Get my 10%" },
+    { "type": "url", "id": "link_url", "label": "Link URL", "info": "Used when Offer type is Link." },
+    { "type": "text", "id": "link_label", "label": "Link button label", "default": "Learn more" },
+    { "type": "text", "id": "success_heading", "label": "Success heading", "default": "You're in" },
+    { "type": "richtext", "id": "success_text", "label": "Success text", "default": "<p>Here is your code — use it at checkout.</p>" },
+    { "type": "text", "id": "shop_now_label", "label": "Shop now label", "default": "Shop now" },
+    { "type": "url", "id": "shop_now_link", "label": "Shop now link", "info": "Defaults to /collections/all." },
+    {
+      "type": "richtext", "id": "legal_text", "label": "Legal text",
+      "default": "<p>By signing up you agree to receive emails from AB and Beyond. Unsubscribe anytime. See our <a href='/policies/privacy-policy'>privacy policy</a>.</p>"
+    },
+
+    { "type": "header", "content": "Form", "info": "Shown when Offer type is Discount code or Announcement." },
+    { "type": "checkbox", "id": "show_form", "label": "Show signup form", "default": true },
+    {
+      "type": "select", "id": "field_name", "label": "Name field", "default": "required",
+      "options": [
+        { "value": "hidden", "label": "Hidden" },
+        { "value": "optional", "label": "Optional" },
+        { "value": "required", "label": "Required" }
+      ]
+    },
+    {
+      "type": "select", "id": "field_phone", "label": "Phone field", "default": "required",
+      "options": [
+        { "value": "hidden", "label": "Hidden" },
+        { "value": "optional", "label": "Optional" },
+        { "value": "required", "label": "Required" }
+      ]
+    },
+    {
+      "type": "select", "id": "field_email", "label": "Email field", "default": "required",
+      "info": "The customer form needs an email.",
+      "options": [
+        { "value": "optional", "label": "Optional" },
+        { "value": "required", "label": "Required" }
+      ]
+    },
+    { "type": "checkbox", "id": "show_whatsapp_optin", "label": "Show WhatsApp opt-in", "default": true },
+    { "type": "text", "id": "whatsapp_optin_label", "label": "WhatsApp opt-in label", "default": "Also send me updates on WhatsApp" },
+    { "type": "text", "id": "customer_tags", "label": "Customer tags", "default": "newsletter,popup-10off", "info": "Comma-separated. The Campaign ID is always added too." },
+
+    { "type": "header", "content": "Look" },
+    {
+      "type": "select", "id": "desktop_layout", "label": "Desktop layout", "default": "centred",
+      "info": "Mobile is always a bottom sheet.",
+      "options": [
+        { "value": "centred", "label": "Centred modal" },
+        { "value": "side_panel_right", "label": "Side panel (right)" }
+      ]
+    },
+    { "type": "range", "id": "max_width", "min": 360, "max": 720, "step": 10, "unit": "px", "label": "Max width", "default": 440 },
+    { "type": "paragraph", "content": "Colours default to the theme's popup tokens when left blank." },
+    { "type": "color", "id": "bg_color", "label": "Background" },
+    { "type": "color", "id": "text_color", "label": "Text" },
+    { "type": "color", "id": "accent_color", "label": "Accent / buttons" },
+
+    { "type": "header", "content": "Timing" },
+    { "type": "range", "id": "delay_min", "min": 0, "max": 60, "step": 1, "unit": "s", "label": "Minimum delay", "default": 5 },
+    { "type": "range", "id": "delay_max", "min": 0, "max": 60, "step": 1, "unit": "s", "label": "Maximum delay", "default": 8 },
+    { "type": "range", "id": "dismiss_days", "min": 0, "max": 90, "step": 1, "unit": "d", "label": "Days to stay dismissed", "default": 30, "info": "0 = show again next visit." },
+    {
+      "type": "select", "id": "frequency", "label": "Frequency", "default": "campaign",
+      "options": [
+        { "value": "campaign", "label": "Once per campaign" },
+        { "value": "session", "label": "Once per session" }
+      ]
+    },
+
+    { "type": "header", "content": "Targeting" },
+    {
+      "type": "select", "id": "show_on", "label": "Show on", "default": "all",
+      "options": [
+        { "value": "all", "label": "All pages" },
+        { "value": "home", "label": "Home" },
+        { "value": "products", "label": "Products" },
+        { "value": "collections", "label": "Collections" },
+        { "value": "pages", "label": "Pages" }
+      ]
+    },
+    { "type": "textarea", "id": "include_paths", "label": "Only on these paths", "info": "Optional. One URL path per line (e.g. /pages/gifts). If filled, the popup shows only on these paths." },
+    { "type": "text", "id": "exclude_templates", "label": "Exclude templates", "default": "cart, page.book-fitting, page.my-board, customers" },
+    {
+      "type": "select", "id": "audience", "label": "Audience", "default": "new",
+      "options": [
+        { "value": "new", "label": "New visitors only" },
+        { "value": "all", "label": "Everyone" }
+      ]
+    },
+    { "type": "checkbox", "id": "hide_for_logged_in", "label": "Hide for logged-in customers", "default": true },
+    {
+      "type": "select", "id": "devices", "label": "Devices", "default": "all",
+      "options": [
+        { "value": "all", "label": "All" },
+        { "value": "mobile", "label": "Mobile only" },
+        { "value": "desktop", "label": "Desktop only" }
+      ]
+    },
+
+    { "type": "header", "content": "Schedule" },
+    { "type": "text", "id": "start_date", "label": "Start date", "info": "YYYY-MM-DD, compared in IST. Blank = no limit." },
+    { "type": "text", "id": "end_date", "label": "End date", "info": "YYYY-MM-DD, compared in IST. Blank = no limit." },
+
+    { "type": "header", "content": "Editor preview" },
+    { "type": "checkbox", "id": "preview_success", "label": "Preview success state", "default": false, "info": "Only affects the theme editor." }
+  ],
+  "presets": [
+    { "name": "Campaign popup" }
+  ]
+}
+{% endschema %}

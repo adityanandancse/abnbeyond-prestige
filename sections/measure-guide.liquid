@@ -1,0 +1,248 @@
+{%- comment -%}
+  ============================================================================
+  How-to-measure guide — one sheet (menswear "he" OR womenswear "she").
+  The section's own root carries id="{{ sheet }}" so the intro's jump nav
+  (#he / #she) lands here. Each measurement block is an <article> whose id is
+  "<sheet>-<key>" (e.g. he-chest), matching the drawer's "How to measure"
+  deep links in snippets/mtm-field.liquid.
+  Native image/video only — no third-party apps, scripts or libraries.
+  ============================================================================
+{%- endcomment -%}
+
+{%- assign sheet = section.settings.sheet | default: 'he' -%}
+{%- assign group_order = 'Upper Body,Top,Bottom,Lengths' | split: ',' -%}
+
+<section class="MeasureGuide" id="{{ sheet }}" data-measure-guide>
+  <div class="Container">
+    <header class="MeasureGuide__Header SectionHeader">
+      {%- if section.settings.heading != blank -%}
+        <h2 class="SectionHeader__Heading Heading u-h2">{{ section.settings.heading | escape }}</h2>
+      {%- endif -%}
+      {%- if section.settings.intro != blank -%}
+        <div class="SectionHeader__Description Rte">{{ section.settings.intro }}</div>
+      {%- endif -%}
+    </header>
+
+    {%- for grp in group_order -%}
+      {%- assign grp_count = 0 -%}
+      {%- for block in section.blocks -%}
+        {%- if block.settings.group == grp and block.settings.key != blank -%}
+          {%- assign grp_count = grp_count | plus: 1 -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if grp_count > 0 -%}
+        <h3 class="MeasureGuide__GroupHeading">{{ grp | escape }}</h3>
+
+        {%- for block in section.blocks -%}
+          {%- unless block.settings.group == grp and block.settings.key != blank -%}{%- continue -%}{%- endunless -%}
+          {%- assign bkey = block.settings.key | strip -%}
+          {%- assign blabel = block.settings.label | default: bkey -%}
+          {%- assign bimage = block.settings.image -%}
+          {%- assign bvideo = block.settings.video -%}
+
+          <article class="MeasureGuide__Item" id="{{ sheet }}-{{ bkey | escape }}" {{ block.shopify_attributes }}>
+            <div class="MeasureGuide__Media">
+              {%- if bimage != blank -%}
+                <img class="MeasureGuide__Image"
+                     src="{{ bimage | image_url: width: 800 }}"
+                     srcset="{{ bimage | image_url: width: 400 }} 400w,
+                             {{ bimage | image_url: width: 600 }} 600w,
+                             {{ bimage | image_url: width: 800 }} 800w,
+                             {{ bimage | image_url: width: 1000 }} 1000w,
+                             {{ bimage | image_url: width: 1200 }} 1200w"
+                     sizes="(min-width: 768px) 46vw, 100vw"
+                     width="{{ bimage.width }}" height="{{ bimage.height }}"
+                     alt="{{ blabel | escape }}" loading="lazy" decoding="async">
+              {%- endif -%}
+              {%- if bvideo != blank -%}
+                <video class="MeasureGuide__Video" controls muted playsinline preload="none"
+                       {% if bvideo.preview_image %}poster="{{ bvideo.preview_image | image_url: width: 800 }}"{% endif %}>
+                  {%- for source in bvideo.sources -%}
+                    <source src="{{ source.url }}" type="{{ source.mime_type }}">
+                  {%- endfor -%}
+                </video>
+              {%- endif -%}
+            </div>
+
+            <div class="MeasureGuide__Text">
+              <h3 class="MeasureGuide__Label Heading u-h5">{{ blabel | escape }}</h3>
+              {%- if block.settings.how != blank -%}
+                <div class="MeasureGuide__How Rte">{{ block.settings.how }}</div>
+              {%- endif -%}
+            </div>
+          </article>
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</section>
+
+<style>
+  .MeasureGuide { padding: 48px 0; scroll-margin-top: var(--header-height, 0px); }
+  .MeasureGuide__Header { max-width: 720px; margin: 0 auto 32px; }
+  .MeasureGuide__GroupHeading {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #3A3A38; margin: 48px 0 20px; padding-bottom: 10px;
+    border-bottom: 1px solid {{ settings.border_color | default: '#e8e8e8' }};
+  }
+  .MeasureGuide__Item {
+    display: grid; grid-template-columns: 46% 1fr; gap: 32px;
+    align-items: start; margin: 0 0 40px;
+    scroll-margin-top: var(--header-height, 0px);
+    border-radius: 2px;
+  }
+  .MeasureGuide__Media { min-width: 0; }
+  .MeasureGuide__Image,
+  .MeasureGuide__Video { display: block; width: 100%; height: auto; }
+  .MeasureGuide__Video { background: #000; }
+  .MeasureGuide__Text { min-width: 0; }
+  .MeasureGuide__Label { margin: 0 0 12px; }
+  .MeasureGuide__How p { line-height: 1.7; margin: 0; }
+
+  /* Deep-link highlight (added by the hash script for 2s). */
+  .MeasureGuide__Item.is-highlight {
+    animation: MeasureGuideFlash 2s ease;
+  }
+  @keyframes MeasureGuideFlash {
+    0%   { background: {{ settings.accent_color | default: '#141414' | color_modify: 'alpha', 0.22 }}; }
+    100% { background: transparent; }
+  }
+
+  @media (max-width: 767px) {
+    .MeasureGuide { padding: 32px 0; }
+    .MeasureGuide__Item { grid-template-columns: 1fr; gap: 16px; margin-bottom: 32px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .MeasureGuide__Item.is-highlight { animation: none; }
+  }
+</style>
+
+{%- comment -%} Hash behaviour — rendered once per page even if two sheets appear. {%- endcomment -%}
+<script>
+(function () {
+  if (window.__measureGuideHash) return;
+  window.__measureGuideHash = true;
+
+  var mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+  function reduced() { return !!(mq && mq.matches); }
+
+  function headerOffset() {
+    var raw = getComputedStyle(document.documentElement).getPropertyValue('--header-height');
+    var n = parseInt(raw, 10);
+    return (isNaN(n) ? 0 : n) + 16;
+  }
+
+  var timer = null;
+  function go() {
+    var id = (window.location.hash || '').replace(/^#/, '');
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (!el || el.tagName.toLowerCase() !== 'article') return;
+
+    var top = el.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+    if (reduced()) {
+      window.scrollTo(0, top);
+    } else {
+      window.scrollTo({ top: top, behavior: 'smooth' });
+    }
+
+    if (timer) { clearTimeout(timer); }
+    el.classList.remove('is-highlight');
+    // reflow so the animation restarts if the same anchor is reselected
+    void el.offsetWidth;
+    el.classList.add('is-highlight');
+    timer = setTimeout(function () { el.classList.remove('is-highlight'); }, 2000);
+  }
+
+  window.addEventListener('hashchange', go);
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', function () { window.requestAnimationFrame(go); });
+  } else {
+    window.requestAnimationFrame(go);
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Measure guide sheet",
+  "settings": [
+    {
+      "type": "select",
+      "id": "sheet",
+      "label": "Sheet",
+      "options": [
+        { "value": "he", "label": "Menswear" },
+        { "value": "she", "label": "Womenswear" }
+      ],
+      "default": "he"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading"
+    },
+    {
+      "type": "richtext",
+      "id": "intro",
+      "label": "Intro"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "measurement",
+      "name": "Measurement",
+      "limit": 40,
+      "settings": [
+        {
+          "type": "text",
+          "id": "key",
+          "label": "Key",
+          "info": "Exact AB Measure key (e.g. chest). Must match snippets/mtm-fields.liquid."
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label"
+        },
+        {
+          "type": "select",
+          "id": "group",
+          "label": "Group",
+          "options": [
+            { "value": "Upper Body", "label": "Upper Body" },
+            { "value": "Top", "label": "Top" },
+            { "value": "Bottom", "label": "Bottom" },
+            { "value": "Lengths", "label": "Lengths" }
+          ],
+          "default": "Upper Body"
+        },
+        {
+          "type": "richtext",
+          "id": "how",
+          "label": "How to measure"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Video",
+          "info": "Optional. Shopify-hosted video."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "category": "Page",
+      "name": "Measure guide sheet",
+      "blocks": []
+    }
+  ]
+}
+{% endschema %}

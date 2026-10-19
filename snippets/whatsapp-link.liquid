@@ -1,0 +1,18 @@
+{%- comment -%}
+  Single source of truth for every WhatsApp link in the theme.
+
+  Usage:
+    {% render 'whatsapp-link' %}                     → default message
+    {% render 'whatsapp-link', product: product %}   → product enquiry message
+
+  Outputs only the wa.me URL (no markup, no surrounding whitespace).
+{%- endcomment -%}
+{%- assign wa_phone = settings.whatsapp_phone | remove: '+' | remove: ' ' | remove: '-' -%}
+{%- if product -%}
+  {%- capture wa_product_url -%}{{ shop.url }}{{ product.url }}{%- endcapture -%}
+  {%- assign wa_message = settings.whatsapp_product_message | replace: '[title]', product.title | replace: '[url]', wa_product_url -%}
+{%- else -%}
+  {%- assign wa_message = settings.whatsapp_default_message -%}
+{%- endif -%}
+{%- comment -%}Output on a single line so the result is a clean URL.{%- endcomment -%}
+https://wa.me/{{ wa_phone }}?text={{ wa_message | url_encode }}
