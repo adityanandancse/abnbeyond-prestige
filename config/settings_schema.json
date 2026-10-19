@@ -895,7 +895,7 @@
         "default": "Achin Bindlish"
       },
       {
-        "type": "url",
+        "type": "text",
         "id": "parent_brand_url",
         "label": "Parent brand website",
         "default": "https://www.achinbindlish.com"

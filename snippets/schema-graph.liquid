@@ -77,8 +77,9 @@
 {%- endcapture -%}
 
 {%- comment -%} ========================= WebSite =========================== {%- endcomment -%}
+{%- capture search_url_template -%}{{ shop.url }}/search?q={search_term_string}{%- endcapture -%}
 {%- capture website_node -%}
-{"@type":"WebSite","@id":{{ website_id | json }},"name":{{ biz_name | json }},"alternateName":{{ biz_alt | json }},"url":{{ shop.url | json }},"publisher":{"@id":{{ org_id | json }}},"inLanguage":"en-IN","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":{{ shop.url | append: '/search?q={search_term_string}' | json }}},"query-input":"required name=search_term_string"}}
+{"@type":"WebSite","@id":{{ website_id | json }},"name":{{ biz_name | json }},"alternateName":{{ biz_alt | json }},"url":{{ shop.url | json }},"publisher":{"@id":{{ org_id | json }}},"inLanguage":"en-IN","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":{{ search_url_template | json }}},"query-input":"required name=search_term_string"}}
 {%- endcapture -%}
 
 {%- comment -%} ===================== ClothingStore ========================= {%- endcomment -%}
